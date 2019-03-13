@@ -11,7 +11,7 @@ ROOT.gROOT.SetBatch(ROOT.kTRUE)
 def get_options():
   parser = OptionParser()
   parser = OptionParser( usage="usage: python make_egamma_plot.py <options>" )
-  parser.add_option("-c", "--clusteringAlgs", dest="clusteringAlgs", default="default,Histomax", help="Variable to plot")
+  parser.add_option("-c", "--clusteringAlgs", dest="clusteringAlgs", default="default,Histomax_vardrth10", help="Variable to plot")
   parser.add_option("-i", "--inputSignalType", dest="inputSignalType", default="SingleElectronPt5_100", help="Input signal type")
   parser.add_option("-d", "--defaultOnly", dest="defaultOnly", default=0, help="Default clustering only plot")
   parser.add_option("-s", "--signalOnly", dest="signalOnly", default=0, help="Only plot signal")
@@ -103,12 +103,12 @@ for var in variables_plotting_options:
     for clusteringAlgo in clusteringAlgs:
       if clusteringAlgo == 'default': continue
       h_sig['%s'%clusteringAlgo].SetMarkerStyle( markerStyles[clusteringAlgo] )
-      h_sig['%s'%clusteringAlgo].SetMarkerSize( 1.2 )
+      h_sig['%s'%clusteringAlgo].SetMarkerSize( 1.4 )
       h_sig['%s'%clusteringAlgo].SetMarkerColor(8)
       h_sig['%s'%clusteringAlgo].SetLineColor(0)
       h_sig['%s'%clusteringAlgo].Draw("SAME P")
       h_bkg['%s'%clusteringAlgo].SetMarkerStyle( markerStyles[clusteringAlgo] )
-      h_bkg['%s'%clusteringAlgo].SetMarkerSize( 1.2 )
+      h_bkg['%s'%clusteringAlgo].SetMarkerSize( 1.4 )
       h_bkg['%s'%clusteringAlgo].SetMarkerColor(9)
       h_bkg['%s'%clusteringAlgo].SetLineColor(0)
       if not signalOnly: h_bkg['%s'%clusteringAlgo].Draw("SAME P")
@@ -124,7 +124,9 @@ for var in variables_plotting_options:
   if( setLogY ): h_sig['default'].SetMinimum( 1e-3 )
 
   #For legend
-  leg1 = ROOT.TLegend(0.560172,0.506329,0.87,0.88)
+  if var == "bdteg": leg1 = ROOT.TLegend(0.160172,0.6,0.47,0.88)
+  elif var == "eta": leg1 = ROOT.TLegend(0.360172,0.6,0.67,0.88)
+  else: leg1 = ROOT.TLegend(0.560172,0.6,0.87,0.88)
   #dummy histograms and graphs for legend
   h_default = ROOT.TH1F("h_default","",10,0,10)
   h_default.SetLineWidth(3)

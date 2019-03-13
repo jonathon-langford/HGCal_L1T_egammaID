@@ -9,3 +9,5 @@
 *.pkl
 *.csv
 *.txt
+*.xml
+*.model

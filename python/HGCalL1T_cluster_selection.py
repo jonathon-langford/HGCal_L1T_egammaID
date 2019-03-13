@@ -24,7 +24,8 @@ clusteringAlgo = opt.clusteringAlgo
 maxEvents = int( opt.maxEvents )
 
 #For electron and pion inputs
-if( opt.input_type == "electron" ): input_type = "SingleElectronPt5_100Eta1p6_2p8"
+#if( opt.input_type == "electron" ): input_type = "SingleElectronPt5_100Eta1p6_2p8"
+if( opt.input_type == "electron" ): input_type = "SingleElectronPt2_100Eta1p6_2p8"
 elif( opt.input_type == "pion" ): input_type = "SinglePionPt25Eta1p6_2p8"
 else:
   print "[ERROR] Input type (%s) not supported. Exiting..."%opt.input_type
@@ -33,7 +34,8 @@ fNumber = int(opt.file_number)
 
 #Construct input file name
 #fInput = os.environ['CMSSW_BASE'] + "/src/L1Trigger/analysis/ntuples/%s/ntuple_%g.root"%(input_type,fNumber)
-fInput = '/eos/home-j/jlangfor/hgcal/l1/egid/93X/ntuples/%s_200PU/ntuple_%g.root'%(input_type,fNumber)
+#fInput = '/eos/home-j/jlangfor/hgcal/l1/egid/93X/ntuples/%s_200PU/ntuple_%g.root'%(input_type,fNumber)
+fInput = '/eos/home-j/jlangfor/hgcal/l1/egid/104X/ntuples/%s_200PU/ntuple_newGeometry_%g.root'%(input_type,fNumber)
 
 print "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 print "HGCal L1T Analysis: signal and background tree generator"
@@ -162,7 +164,8 @@ def fillBackground( _cl3d ):
 # Configure output
 print "Configuring output ntuple..."
 #output ROOT file
-fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/analysis/output/trees/%s/%s/%s_%s_%g.root'%(clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
+#fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/analysis/output/trees/%s/%s/%s_%s_%g.root'%(clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
+fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/analysis/output/trees/104X/%s/%s/%s_%s_%g.root'%(clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
 fout = ROOT.TFile( fout_id, "RECREATE" )
 
 #Initialise ttree and define variables

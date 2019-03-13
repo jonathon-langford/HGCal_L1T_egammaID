@@ -95,11 +95,13 @@ if not defaultOnly:
 leg1 = ROOT.TLegend(0.15,0.15,0.6,0.6)
 leg1.SetFillColor(0)
 leg1.SetLineColor(0)
-leg1.AddEntry(g_roc['default'],"default: AUC = %5.4f"%g_roc['default'].Integral(),"LP")
+#leg1.AddEntry(g_roc['default'],"default: AUC = %5.4f"%g_roc['default'].Integral(),"LP")
+leg1.AddEntry(g_roc['default'],"default", "LP" )
 if not defaultOnly: 
   for clusteringAlgo in clusteringAlgs:
     if clusteringAlgo == 'default': continue
-    leg1.AddEntry(g_roc[ clusteringAlgo ], "%s: AUC = %5.4f"%(clusteringAlgo,g_roc[clusteringAlgo].Integral()) ,"LP")
+    #leg1.AddEntry(g_roc[ clusteringAlgo ], "%s: AUC = %5.4f"%(clusteringAlgo,g_roc[clusteringAlgo].Integral()) ,"LP")
+    leg1.AddEntry(g_roc[ clusteringAlgo ], "%s"%clusteringAlgo,"LP")
 leg1.Draw("Same")
 
 lat = ROOT.TLatex()
