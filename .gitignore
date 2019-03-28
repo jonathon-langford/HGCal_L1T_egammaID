@@ -1,13 +1,13 @@
 #ignore files
 *.root
 *.log
-*.sub
 *.err
 *.out
 *.pdf
 *.png
 *.pkl
 *.csv
+*.cc
 *.txt
 *.xml
 *.model

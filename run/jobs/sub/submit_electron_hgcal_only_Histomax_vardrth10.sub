@@ -1,0 +1,10 @@
+plusone = $(Process) + 1
+procID = $INT(plusone,%d)
+
+executable          = /afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/run/run_cl3d_selection.sh
+arguments           = electron_hgcal_only $(procID) Histomax_vardrth10
+output              = /afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/run/jobs/out/electron_hgcal_only_Histomax_vardrth10_$(procID).out 
+error               = /afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/run/jobs/err/electron_hgcal_only_Histomax_vardrth10_$(procID).err 
+log                 = /afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/run/jobs/log/electron_hgcal_only_Histomax_vardrth10_$(procID).log
++JobFlavour         = "workday"
+queue 50
