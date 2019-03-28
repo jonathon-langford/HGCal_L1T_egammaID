@@ -24,18 +24,19 @@ clusteringAlgo = opt.clusteringAlgo
 maxEvents = int( opt.maxEvents )
 
 #For electron and pion inputs
-#if( opt.input_type == "electron" ): input_type = "SingleElectronPt5_100Eta1p6_2p8"
-if( opt.input_type == "electron" ): input_type = "SingleElectronPt2_100Eta1p6_2p8"
-elif( opt.input_type == "pion" ): input_type = "SinglePionPt25Eta1p6_2p8"
+if( opt.input_type == "electron" ): input_type = "SingleElectron_FlatPt-2to100"
+elif( opt.input_type == "electron_hgcal_only" ): input_type = "SingleElectronPt5_100Eta1p6_2p8"
+elif( opt.input_type == "photon" ): input_type = "SinglePhoton_FlatPt-8to150"
+elif( opt.input_type == "pion" ): input_type = "SinglePion_FlatPt-2to100"
+elif( opt.input_type == "neutrino" ): input_type = "SingleNeutrino"
 else:
   print "[ERROR] Input type (%s) not supported. Exiting..."%opt.input_type
   sys.exit(1)
 fNumber = int(opt.file_number)
 
 #Construct input file name
-#fInput = os.environ['CMSSW_BASE'] + "/src/L1Trigger/analysis/ntuples/%s/ntuple_%g.root"%(input_type,fNumber)
-#fInput = '/eos/home-j/jlangfor/hgcal/l1/egid/93X/ntuples/%s_200PU/ntuple_%g.root'%(input_type,fNumber)
-fInput = '/eos/home-j/jlangfor/hgcal/l1/egid/104X/ntuples/%s_200PU/ntuple_newGeometry_%g.root'%(input_type,fNumber)
+if "hgcal_only" in opt.input_type: fInput = '/eos/home-j/jlangfor/hgcal/l1/egid/93X/ntuples/hgcal_only/%s_200PU/ntuple_%g.root'%(input_type,fNumber)
+else: fInput = '/eos/home-j/jlangfor/hgcal/l1/egid/93X/ntuples/full_eta_range/%s_200PU/ntuple_%g.root'%(input_type,fNumber)
 
 print "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 print "HGCal L1T Analysis: signal and background tree generator"
@@ -85,34 +86,6 @@ class Cluster3D:
 
 #########################################################################################
 # Function definitions
-
-# function to return number of 3d clusters for a given event
-def N_cl3d( _event ): return _event.cl3d_n
-
-# function for selection of 3d cluster
-def selection( _event, _ncl3d ):
-  if( _event.cl3d_pt[_ncl3d] < 10. ): return False
-  else: return True
-
-#function to return true if 3D cluster is gen matched
-def isGenMatched( _genEvent, _cl3d, _type="eg", min_dR=0.1 ):
-  if( _type == "eg" ): gen_pids = [11,22] #pids for egamma
-  else: 
-    print "[ERROR] type %s is not supported. Returning false."
-    return False
-
-  #Loop over gen particles: using collection specified in options
-  for gen_idx in range( _genEvent.gen_n ):
-    #if pdgid in gen_pids
-    if abs(_genEvent.gen_pdgid[gen_idx]) in gen_pids:
-      #define TLorentzVector for gen particle
-      gen_p4 = ROOT.TLorentzVector()
-      gen_p4.SetPtEtaPhiE( _genEvent.gen_pt[gen_idx], _genEvent.gen_eta[gen_idx], _genEvent.gen_phi[gen_idx], _genEvent.gen_energy[gen_idx] )
-      if( _cl3d.P4.DeltaR( gen_p4 ) < min_dR )&( gen_p4.Pt() > 10. ): return True
-
-  #if no gen matched then return false
-  return False
-
 
 #function to fill signal/bkg
 def fillSignal( _cl3d ):
@@ -164,8 +137,8 @@ def fillBackground( _cl3d ):
 # Configure output
 print "Configuring output ntuple..."
 #output ROOT file
-#fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/analysis/output/trees/%s/%s/%s_%s_%g.root'%(clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
-fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/analysis/output/trees/104X/%s/%s/%s_%s_%g.root'%(clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
+if "hgcal_only" in opt.input_type: fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/analysis/output/trees/hgcal_only/%s/%s/%s_%s_%g.root'%(clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
+else: fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/analysis/output/trees/full_eta_range/%s/%s/%s_%s_%g.root'%(clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
 fout = ROOT.TFile( fout_id, "RECREATE" )
 
 #Initialise ttree and define variables
@@ -250,7 +223,6 @@ tree_bkg.Branch("bkg_emaxe", bkg_emaxe, 'bkg_emaxe/F')
 tree_bkg.Branch("bkg_bdteg", bkg_bdteg, 'bkg_bdteg/F')
 tree_bkg.Branch("bkg_quality", bkg_quality, 'bkg_quality/F')
 
-
 #########################################################################################
 # Loop over events
 
@@ -266,33 +238,59 @@ for ev_idx in range(cl3d_tree.GetEntries()):
   gen_tree.GetEntry( ev_idx )
   cl3d_tree.GetEntry( ev_idx )
 
-  ##Loop over 3D clusters in event
-  #for cl3d_idx in range(0, N_cl3d(cl3d_event) ):
+  #Extract number of gen particles + cl3d in event
+  N_gen = gen_tree.gen_n
+  N_cl3d = cl3d_tree.cl3d_n
+
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # SIGNAL CLUSTERS
+  if( 'electron' in opt.input_type )|( 'photon' in opt.input_type ):
+
+    #Loop over gen-e/gamma in event
+    for gen_idx in range( N_gen ): 
+      if abs( gen_tree.gen_pdgid[gen_idx] ) in [11,22]:
+        #define TLorentzVector for gen particle
+        gen_p4 = ROOT.TLorentzVector()
+        gen_p4.SetPtEtaPhiE( gen_tree.gen_pt[gen_idx], gen_tree.gen_eta[gen_idx], gen_tree.gen_phi[gen_idx], gen_tree.gen_energy[gen_idx] )    
+        # require gen e/g pT > 20 GeV
+        if gen_p4.Pt() < 20.: continue
+
+        # loop overi 3d clusters: save index of max pt cluster if in 
+        cl3d_genMatched_maxpt_idx = -1
+        cl3d_genMatched_maxpt = -999
+        for cl3d_idx in range( N_cl3d ):
+          #requre that cluster pt > 10 GeV
+          if cl3d_tree.cl3d_pt[cl3d_idx] < 10.: continue
+          #define TLorentxVector for cl3d
+          cl3d_p4 = ROOT.TLorentzVector()
+          cl3d_p4.SetPtEtaPhiE( cl3d_tree.cl3d_pt[cl3d_idx], cl3d_tree.cl3d_eta[cl3d_idx], cl3d_tree.cl3d_phi[cl3d_idx], cl3d_tree.cl3d_energy[cl3d_idx] )
+          #Require cluster to be dR < 0.2 within electron
+          if cl3d_p4.DeltaR( gen_p4 ) < 0.2: 
+            #If pT of cluster is > present max then set 
+            if cl3d_p4.Pt() > cl3d_genMatched_maxpt:
+               cl3d_genMatched_maxpt = cl3d_p4.Pt()
+               cl3d_genMatched_maxpt_idx = cl3d_idx
+
+        # if cl3d idx has been set then add fill cluster to tree
+        if cl3d_genMatched_maxpt_idx >= 0:
+          cl3d = Cluster3D( cl3d_tree, cl3d_genMatched_maxpt_idx )
+          fillSignal( cl3d )
+
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  #BACKGROUND CLUSTERS: PU
+  else:
+
+    #Loop over 3d clusters: if pT > 20 GeV then fill as background
+    for cl3d_idx in range(0, N_cl3d ):
+
+      if cl3d_tree.cl3d_pt[cl3d_idx] > 20.: 
+        cl3d = Cluster3D( cl3d_tree, cl3d_idx )
+        fillBackground( cl3d )
+
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
-  #  #cluster selection
-  #  if selection( cl3d_event, cl3d_idx ):
-
-      #instantiate 3d cluster class
-  #    cl3d = Cluster3D( cl3d_event, cl3d_idx ) 
-  #    if( isGenMatched(gen_event,cl3d,min_dR=0.01) ): fillSignal( cl3d )
-  #    else: fillBackground( cl3d )
-
-  #Loop over 3D clusters in event
-  for cl3d_idx in range(0, N_cl3d(cl3d_tree) ):
-    
-    #cluster selection
-    if selection( cl3d_tree, cl3d_idx ):
-
-      #instantiate 3d cluster class
-      cl3d = Cluster3D( cl3d_tree, cl3d_idx ) 
-      if( isGenMatched(gen_tree,cl3d,min_dR=0.1) ): fillSignal( cl3d )
-      else: fillBackground( cl3d )
-
-
 
 #end of events loop
-
-
 #########################################################################################
 
 fout.Write()
