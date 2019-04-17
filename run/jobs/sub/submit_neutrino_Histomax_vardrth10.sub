@@ -7,4 +7,4 @@ output              = /afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1T
 error               = /afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/run/jobs/err/neutrino_Histomax_vardrth10_$(procID).err 
 log                 = /afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/run/jobs/log/neutrino_Histomax_vardrth10_$(procID).log
 +JobFlavour         = "workday"
-queue 50
+queue 623

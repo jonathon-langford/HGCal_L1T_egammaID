@@ -63,15 +63,17 @@ def get_options():
   parser = OptionParser()
   parser.add_option('--modelAlgs', dest='modelAlgs', default='default,Histomax_vardrth10,tpg_Histomax_vardrth10', help="Clustering algorithms with which BDTs were trained" )
   parser.add_option('--inputAlgo', dest='inputAlgo', default='Histomax_vardrth10', help="Clustering algorithm with which to check BDT performance" )
-  parser.add_option('--signalSample', dest='signalSample', default='SingleElectronPt5_100Eta1p6_2p8', help="Input signal" )
-  parser.add_option('--backgroundSample', dest='backgroundSample', default='SinglePionPt25Eta1p6_2p8', help="Input background" )
+  parser.add_option('--inputSignalType', dest='inputSignalType', default='electron', help="Input signal type" )
+  parser.add_option('--inputBackgroundType', dest='inputBackgroundType', default='neutrino', help="Input background type" )
+  #parser.add_option('--signalSample', dest='signalSample', default='SingleElectronPt5_100Eta1p6_2p8', help="Input signal" )
+  #parser.add_option('--backgroundSample', dest='backgroundSample', default='SinglePionPt25Eta1p6_2p8', help="Input background" )
   return parser.parse_args()
 
 (opt,args) = get_options()
 
 inputAlgo = opt.inputAlgo
-signalSample = opt.signalSample
-backgroundSample = opt.backgroundSample
+#signalSample = opt.signalSample
+#backgroundSample = opt.backgroundSample
 
 # Extract model xml file
 modelAlgs = opt.modelAlgs.split(",")
@@ -81,15 +83,42 @@ for modelAlgo in modelAlgs:
   if "tpg" in modelAlgo:
     for eta in ["loweta","higheta"]: model_xmls[ "%s_%s"%(modelAlgo,eta) ] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/models/tpg/%s/egamma_id_histomax_352_%s_v0.xml"%(modelAlgo,eta)
   #for self trained models
-  else: model_xmls[ modelAlgo ] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/models/%s/egID_%s.xml"%(modelAlgo,modelAlgo)
+  else: model_xmls[ modelAlgo ] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/models/%s/egID_%s_sig_%s_bkg_%s.xml"%(modelAlgo,modelAlgo,opt.inputSignalType,opt.inputBackgroundType)
 
 #Define inputs
-input_map = {"signal":"/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/trees/%s/%s/%s_%s.root"%(inputAlgo,signalSample,signalSample,inputAlgo),"background":"/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/trees/%s/%s/%s_%s.root"%(inputAlgo,backgroundSample,backgroundSample,inputAlgo)}
+testDirMap = {} #first extract the test file directory
+#Signal
+if "hgcal_only" in opt.inputSignalType: testDirMap['signal'] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/trees/hgcal_only/%s/"%inputAlgo
+else: testDirMap['signal'] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/trees/full_eta_range/%s/"%inputAlgo
+#Background
+if 'hgcal_only' in opt.inputBackgroundType: testDirMap['background'] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/trees/hgcal_only/%s/"%inputAlgo
+else: testDirMap['background'] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/trees/full_eta_range/%s/"%inputAlgo
+
+input_map = {}
+#Signal
+if opt.inputSignalType == "electron_hgcal_only": input_map['signal'] = "%sSingleElectronPt5_100Eta1p6_2p8/SingleElectronPt5_100Eta1p6_2p8_%s_test.root"%(testDirMap['signal'],inputAlgo)
+elif opt.inputSignalType == "electron": input_map['signal'] = "%sSingleElectron_FlatPt-2to100/SingleElectron_FlatPt-2to100_%s_test.root"%(testDirMap['signal'],inputAlgo)
+else:
+  print "  --> [ERROR] Invalid signal type... Leaving"
+  sys.exit(1)
+#Background
+if opt.inputBackgroundType == "neutrino": input_map['background'] = "%sSingleNeutrino/SingleNeutrino_%s_test.root"%(testDirMap['background'],inputAlgo)
+else: 
+  print "  --> [ERROR] Invalid background type... Leaving"
+  sys.exit(1)
+#input_map = {"signal":"/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/trees/%s/%s/%s_%s.root"%(inputAlgo,signalSample,signalSample,inputAlgo),"background":"/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/trees/%s/%s/%s_%s.root"%(inputAlgo,backgroundSample,backgroundSample,inputAlgo)}
 tree_map = {"signal":"egid_signal","background":"egid_background"}
 
 #Define output
-output_map = {"signal":"/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/egID_trees/%s/%s_%s.root"%(inputAlgo,signalSample,inputAlgo),"background":"/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/egID_trees/%s/%s_%s.root"%(inputAlgo,backgroundSample,inputAlgo) }
-f_out = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/egID_trees/%s"
+output_map = {}
+output_dir = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/egID_trees/"
+#Signal
+if opt.inputSignalType == "electron_hgcal_only": output_map['signal'] = "%s%s/SingleElectronPt5_100Eta1p6_2p8_%s_test.root"%(output_dir,inputAlgo,inputAlgo)
+elif opt.inputSignalType == "electron": output_map['signal'] = "%s%s/SingleElectron_FlatPt-2to100_%s_test.root"%(output_dir,inputAlgo,inputAlgo)
+#Background
+if opt.inputBackgroundType == "neutrino": output_map['background'] = "%s%s/SingleNeutrino_%s_test.root"%(output_dir,inputAlgo,inputAlgo)
+#output_map = {"signal":"/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/egID_trees/%s/%s_%s.root"%(inputAlgo,signalSample,inputAlgo),"background":"/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/egID_trees/%s/%s_%s.root"%(inputAlgo,backgroundSample,inputAlgo) }
+#f_out = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/egID_trees/%s"
 
 #BDT input variables
 in_var_names = ['coreshowerlength','firstlayer','maxlayer','srrmean']
