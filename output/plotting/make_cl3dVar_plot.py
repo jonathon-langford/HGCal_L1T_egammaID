@@ -20,7 +20,7 @@ def get_options():
 
 #Variable plotting options: [bins, mimnimum, maximum]
 var = opt.variable
-variables_plotting_options = {'pt':[80,10,50,0], 'eta':[50,-3.14,3.14,0], 'phi':[50,-3.14,3.14,0], 'clusters_n':[30,0,30,0], 'showerlength':[50,0,50,0], 'coreshowerlength':[30,0,30,0], 'firstlayer':[50,0,50,0], 'maxlayer':[50,0,50,0], 'seetot':[50,0,0.10,1], 'seemax':[50,0,0.1,1], 'spptot':[50,0,0.1,1], 'sppmax':[50,0,0.1,1], 'szz':[50,0,50,1], 'srrtot':[50,0,0.01,1], 'srrmax':[50,0,0.01,1], 'srrmean':[50,0,0.01,1], 'emaxe':[60,0,1.2,0], 'bdteg':[50,-1,1.,0], 'quality':[6,-1,5,0]}
+variables_plotting_options = {'pt':[80,10,50,0], 'eta':[50,-3.14,3.14,0], 'phi':[50,-3.14,3.14,0], 'clusters_n':[30,0,30,0], 'showerlength':[50,0,50,0], 'coreshowerlength':[30,0,30,0], 'firstlayer':[50,0,50,0], 'maxlayer':[50,0,50,0], 'seetot':[50,0,0.10,0], 'seemax':[50,0,0.1,0], 'spptot':[50,0,0.1,1], 'sppmax':[50,0,0.1,1], 'szz':[50,0,50,1], 'srrtot':[50,0,0.01,1], 'srrmax':[50,0,0.01,1], 'srrmean':[50,0,0.01,1], 'emaxe':[60,0,1.2,0], 'bdteg':[50,-1,1.,0], 'quality':[6,-1,5,0]}
 if( var not in variables_plotting_options )&( var != 'all' ): 
   print "  --> [ERROR] Variable (%s) not supported"%var
   sys.exit(1)

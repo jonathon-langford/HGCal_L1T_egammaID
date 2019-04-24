@@ -8,10 +8,9 @@ from optparse import OptionParser
 from optparse import OptionParser
 def get_options():
   parser = OptionParser()
-  parser.add_option('--algoMap', dest='algoMap', default='default:default,default:Histomax_vardrth10', help="Comma separated list of [clustering:model] algorithms to plot" )
-  parser.add_option('--inputSignalType', dest='inputSignalType', default='electron', help="Input signal type" )
-  parser.add_option('--inputBackgroundType', dest='inputBackgroundType', default='neutrino', help="Input background type" )
-  parser.add_option('--output', dest='output_dir', default='', help="Output directory" )
+  parser.add_option('--inputMap', dest='input_map', default='electron,neutrino,default,103X,self,electron_vs_neutrino,1', help="Colon separated maps of ROC curves to plot, of the type: signal,background,model algo.,CMSSW release,training (self/tpg),discriminator,colour" )
+  parser.add_option("--legend", dest="legend", default='', help="Legend entries")
+  parser.add_option('--output', dest='output', default='', help="Output directory" )
   parser.add_option('--batch', dest='batch', default=0, help="Set to 1 to supress output to screen" )
   return parser.parse_args()
 
@@ -22,101 +21,120 @@ print "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 print "HGCal L1T Analysis: plotting tools for e/g ID"
 print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
-#Configure inputs
-algoPairs = opt.algoMap.split(",")
-output_dir = opt.output_dir
+#Configure inputs: extract map and store as list of dictionaries
+input_list = []
+for _input in opt.input_map.split(":"):
+  inputInfo = _input.split(",")
+  if len( inputInfo ) != 7:
+    print "  --> [ERROR] Invalid input map"
+    sys.exit(1)
+  input_list.append({})
+  input_list[-1]['signal'] = inputInfo[0]
+  input_list[-1]['background'] = inputInfo[1]
+  input_list[-1]['model_algo'] = inputInfo[2]
+  input_list[-1]['release'] = inputInfo[3]
+  input_list[-1]['training'] = inputInfo[4]
+  input_list[-1]['discriminator'] = inputInfo[5]
+  input_list[-1]['colour'] = inputInfo[6]
 
-if opt.inputSignalType == "electron_hgcal_only": signalName = "SingleElectronPt5_100Eta1p6_2p8"
-else: 
-  print "  --> [ERROR] Invalid signal type. No eg ID tree in folder. Leaving..."
-  sys.exit(1)
-if opt.inputBackgroundType == "neutrino": backgroundName = "SingleNeutrino"
-else:
-  print "  --> [ERROR] Invalid background type. No eg ID tree in folder. Leaving..."
-  sys.exit(1)
-
-input_map = {}
-for algoPair in algoPairs:
-  clusteringAlgo = algoPair.split(":")[0]
-  input_map[ "signal_%s"%clusteringAlgo ] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/egID_trees/%s/%s_%s_test.root"%(clusteringAlgo,signalName,clusteringAlgo)
-  input_map[ "background_%s"%clusteringAlgo ] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/egID_trees/%s/%s_%s_test.root"%(clusteringAlgo,backgroundName,clusteringAlgo)
-
-tree_map = {"signal":"egid_signal","background":"egid_background"}
-
-#markerStyles = {'default':4, 'Histomax_vardrth10':34, 'tpg_Histomax_vardrth10':22}
-lineColors = {'default:default':1, 'default:Histomax_vardrth10':ROOT.kOrange, 'default:tpg_Histomax_vardrth10':ROOT.kOrange+7, 'Histomax_vardrth10:Histomax_vardrth10':8,'Histomax_vardrth10:tpg_Histomax_vardrth10':9,'Histomax_vardrth10:default':2}
-#lineColors = {'default':2, 'Histomax_vardrth10':8, 'tpg_Histomax_vardrth10':9}
-
+# Define dictionary for type mapping
+typeMap = {"electron":"SingleElectron_FlatPt-2to100","photon":"SinglePhoton_FlatPt-8to150","pion":"SinglePion_FlatPt-2to100","neutrino":"SingleNeutrino"}
+treeMap = {"electron":"e_sig","photon":"g_sig","pion":"pi_bkg","neutrino":"pu_bkg"}
+  
 #Configure output
+output = opt.output
 ROOT.gStyle.SetOptStat(0)
 if batch: ROOT.gROOT.SetBatch(ROOT.kTRUE)
 canv = ROOT.TCanvas("c","c")
 
-#Define dictionaries to store histograms for bdt score output and ROC curves
-h_sig = {}
-h_bkg = {}
+#Define dictionary to store ROC curve
 g_roc = {}
 
-#Loop over algo pairs and create ROC curves
-for algoPair in algoPairs:
-
-  #Extract algo pair from list
-  clusteringAlgo = algoPair.split(":")[0]
-  modelAlgo = algoPair.split(":")[1]
+#Loop over inputs and create ROC curves
+for i in input_list:
 
   #Open signal and background files and extract trees
-  f_sig = ROOT.TFile.Open( input_map['signal_%s'%clusteringAlgo] )
-  t_sig = f_sig.Get( tree_map['signal'] )
-  f_bkg = ROOT.TFile.Open( input_map['background_%s'%clusteringAlgo] )
-  t_bkg = f_bkg.Get( tree_map['background'] )
+  f_sig = ROOT.TFile.Open( os.environ['CMSSW_BASE'] + "/src/L1Trigger/analysis/output/egID_trees/%s/%s/%s_%s.root"%(i['release'],i['model_algo'],typeMap[i['signal']],i['model_algo']))
+  f_bkg = ROOT.TFile.Open( os.environ['CMSSW_BASE'] + "/src/L1Trigger/analysis/output/egID_trees/%s/%s/%s_%s.root"%(i['release'],i['model_algo'],typeMap[i['background']],i['model_algo']))
+  t_sig = f_sig.Get( treeMap[i['signal']] )
+  t_bkg = f_bkg.Get( treeMap[i['background']] )
 
-  #define histograms
-  h_sig[ "%s_%s"%(clusteringAlgo,modelAlgo) ] = ROOT.TH1F("h_sig_%s_bdtscore_%s"%(clusteringAlgo,modelAlgo), "", 240, -1.1, 1.1 )
-  h_bkg[ "%s_%s"%(clusteringAlgo,modelAlgo) ] = ROOT.TH1F("h_bkg_%s_bdtscore_%s"%(clusteringAlgo,modelAlgo), "", 240, -1.1, 1.1 )
+  #Define histograms
+  h_sig = ROOT.TH1F("h_sig_bdt_%s_%s_%s_%s"%(i['model_algo'],i['release'],i['training'],i['discriminator']), "", 240, -1.1, 1.1 )
+  h_bkg = ROOT.TH1F("h_bkg_bdt_%s_%s_%s_%s"%(i['model_algo'],i['release'],i['training'],i['discriminator']), "", 240, -1.1, 1.1 )
 
-  for ev in t_sig: h_sig[ "%s_%s"%(clusteringAlgo,modelAlgo) ].Fill( getattr( ev, "bdtscore_%s"%modelAlgo ) )
-  for ev in t_bkg: h_bkg[ "%s_%s"%(clusteringAlgo,modelAlgo) ].Fill( getattr( ev, "bdtscore_%s"%modelAlgo ) )
+  #Fill histograms from trees
+  for ev in t_sig:
+    if i['training'] == "tpg": h_sig.Fill( getattr( ev, "cl3d_bdt_tpg" ) )
+    elif i['training'] == "self": h_sig.Fill( getattr( ev, "cl3d_bdt_%s_%s_%s"%(i['model_algo'],i['release'],i['discriminator']) ) )
+  for ev in t_bkg:
+    if i['training'] == "tpg": h_bkg.Fill( getattr( ev, "cl3d_bdt_tpg" ) )
+    elif i['training'] == "self": h_bkg.Fill( getattr( ev, "cl3d_bdt_%s_%s_%s"%(i['model_algo'],i['release'],i['discriminator']) ) )
 
-  # Define graph to plot ROC
-  g_roc[ "%s_%s"%(clusteringAlgo,modelAlgo) ] = ROOT.TGraph()
+  #Define graph to plot ROC
+  rocStr = '%s_%s_%s_%s_%s_%s'%(i['signal'],i['background'],i['model_algo'],i['release'],i['training'],i['discriminator'])
+  g_roc[ rocStr ] = ROOT.TGraph()
 
   # Loop over bins in histogram and plot points in graph
-  for i in range( h_sig[ "%s_%s"%(clusteringAlgo,modelAlgo) ].GetNbinsX() ):
-    eff_sig = h_sig[ "%s_%s"%(clusteringAlgo,modelAlgo) ].Integral(i+1,h_sig[ "%s_%s"%(clusteringAlgo,modelAlgo) ].GetNbinsX()+1)/h_sig[ "%s_%s"%(clusteringAlgo,modelAlgo) ].Integral()
-    eff_bkg = h_bkg[ "%s_%s"%(clusteringAlgo,modelAlgo) ].Integral(i+1,h_bkg[ "%s_%s"%(clusteringAlgo,modelAlgo) ].GetNbinsX()+1)/h_bkg[ "%s_%s"%(clusteringAlgo,modelAlgo) ].Integral()
-    g_roc[ "%s_%s"%(clusteringAlgo,modelAlgo) ].SetPoint(i,1-eff_bkg,eff_sig)
+  for j in range( h_sig.GetNbinsX() ):
+    eff_sig = h_sig.Integral(j+1,h_sig.GetNbinsX()+1)/h_sig.Integral()
+    eff_bkg = h_bkg.Integral(j+1,h_bkg.GetNbinsX()+1)/h_bkg.Integral()
+    g_roc[ rocStr ].SetPoint(j,1-eff_bkg,eff_sig)
 
   #Configure ROC
-  g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].GetXaxis().SetRangeUser(0.75,1.)
-  g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].GetYaxis().SetRangeUser(0.6,1.1)
-  g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].GetXaxis().SetTitle('1 - #epsilon_{b}')
-  g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].GetXaxis().SetTitleSize(0.05)
-  g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].GetXaxis().SetTitleOffset(0.9)
-  g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].GetYaxis().SetTitle('#epsilon_{s}')
-  g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].GetYaxis().SetTitleSize(0.05)
-  g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].GetYaxis().SetTitleOffset(0.9)
-  g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].SetLineWidth(2)
-  #g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].SetMarkerStyle( markerStyles[modelAlgo] )
-  g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].SetLineColor( lineColors[algoPair] )
-  g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].SetMarkerColor( lineColors[algoPair] )  
+  g_roc[ rocStr ].GetXaxis().SetRangeUser(0.75,1.)
+  g_roc[ rocStr ].GetYaxis().SetRangeUser(0.6,1.05)
+  g_roc[ rocStr ].GetXaxis().SetTitle('1 - #epsilon_{b}')
+  g_roc[ rocStr ].GetXaxis().SetTitleSize(0.05)
+  g_roc[ rocStr ].GetXaxis().SetTitleOffset(0.9)
+  g_roc[ rocStr ].GetYaxis().SetTitle('#epsilon_{s}')
+  g_roc[ rocStr ].GetYaxis().SetTitleSize(0.05)
+  g_roc[ rocStr ].GetYaxis().SetTitleOffset(0.9)
+  g_roc[ rocStr ].SetLineWidth(2)
+  g_roc[ rocStr ].SetLineColor( int(i['colour']) )
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# PLOTTING
-for algoPair_idx in range( len(algoPairs) ):
-  clusteringAlgo = algoPairs[algoPair_idx].split(":")[0]
-  modelAlgo = algoPairs[algoPair_idx].split(":")[1]
-  if algoPair_idx == 0: g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].Draw("AL")
-  else: g_roc["%s_%s"%(clusteringAlgo,modelAlgo)].Draw("L SAME")
+# Loop over input list again and plot
+for _idx in range( len( input_list ) ):
+  i = input_list[_idx]
+  rocStr = '%s_%s_%s_%s_%s_%s'%(i['signal'],i['background'],i['model_algo'],i['release'],i['training'],i['discriminator'])
+  if _idx == 0: g_roc[ rocStr ].Draw("AL")
+  else: g_roc[ rocStr ].Draw("L SAME")
 
-leg1 = ROOT.TLegend(0.15,0.15,0.6,0.45)
-leg1.SetFillColor(0)
-leg1.SetLineColor(0)
-leg1.AddEntry(0, "(clustering algo., training algo.)", "")
-for algoPair in algoPairs:
-  clusteringAlgo = algoPair.split(":")[0]
-  modelAlgo = algoPair.split(":")[1]
-  leg1.AddEntry(g_roc[ "%s_%s"%(clusteringAlgo,modelAlgo) ], "(%s,%s)"%(clusteringAlgo,modelAlgo), "L")
-leg1.Draw("Same")
+#For legend
+if len(opt.legend) > 1:
+  entry_list = []
+  #Entry of type: text,colour,option
+  for _entry in opt.legend.split("+"):
+    entryInfo = _entry.split(":")
+    #print "  --> [DEBUG] entryInfo =", entryInfo, ", len(entryInfo) =", len(entryInfo)
+    if len(entryInfo) != 3:
+      print "  --> [ERROR] Invalid legend entry. Exiting..."
+      sys.exit(1)
+    entry_list.append({})
+    entry_list[-1]['text'] = entryInfo[0]
+    entry_list[-1]['colour'] = entryInfo[1]
+    entry_list[-1]['option'] = entryInfo[2]
+
+  graph_list = []
+  #Create dummy graphs to place in legend
+  for entry in entry_list:
+    gr = ROOT.TGraph()
+    if entry['colour'] != "empty":
+      gr.SetFillColor( int(entry['colour']) )
+      gr.SetLineColor( int(entry['colour']) )
+      gr.SetLineWidth( 2 )
+    graph_list.append( gr )
+
+  #Create legend and add entries
+  leg = ROOT.TLegend(0.15,0.15,0.6,0.45)
+  leg.SetFillColor(0)
+  leg.SetLineColor(0)
+  for _idx in range( len( entry_list ) ):
+    entry = entry_list[_idx]
+    if entry['colour'] == "empty": leg.AddEntry( 0, "%s"%entry['text'], "%s"%entry['option'] )
+    else: leg.AddEntry( graph_list[_idx], "%s"%entry['text'], "%s"%entry['option'] )
+  leg.Draw("Same")
 
 lat = ROOT.TLatex()
 lat.SetTextFont(42)
@@ -128,13 +146,8 @@ lat.DrawLatex(0.1,0.92,"#bf{CMS Phase-2} #scale[0.75]{#it{Internal}}")
 lat.DrawLatex(0.8,0.92,"14 TeV")
 canv.Update()
 
-if output_dir != '':
-  output_file = "%s/ROC_cl3d-train"%output_dir
-  for algoPair in algoPairs:
-    clusteringAlgo = algoPair.split(":")[0]
-    modelAlgo = algoPair.split(":")[1]
-    output_file += "_%s-%s"%(clusteringAlgo,modelAlgo)  
-  canv.Print( '%s.png'%output_file )
-  canv.Print( '%s.pdf'%output_file )
+if output != '':
+  canv.Print( '%s.png'%output )
+  canv.Print( '%s.pdf'%output )
 
 if not batch: raw_input("Press any key to continue...")

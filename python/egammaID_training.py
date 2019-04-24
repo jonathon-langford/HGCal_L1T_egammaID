@@ -10,6 +10,7 @@ import pickle
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import roc_auc_score, roc_curve
 from os import path, system
+import os
 import sys
 from array import array
 
@@ -30,51 +31,46 @@ print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 from optparse import OptionParser
 def get_options():
   parser = OptionParser()
-  parser.add_option('--clusteringAlgo', dest='clusteringAlgo', default='default', help="Clustering algorithm with which to optimise BDT" )
-  parser.add_option('--inputSignalType', dest='inputSignalType', default='electron', help="Input signal type" )
-  parser.add_option('--inputBackgroundType', dest='inputBackgroundType', default='electron', help="Input background type" )
+  parser.add_option('--clusteringAlgo', dest='clusteringAlgo', default='Histomax_vardrth10', help="Clustering algorithm with which to optimise BDT" )
+  parser.add_option('--signal', dest='signal', default='electron', help="Input signal type" )
+  parser.add_option('--background', dest='background', default='neutrino', help="Input background type" )
+  parser.add_option('--release', dest='release', default='103X', help="CMSSW release (for HGCal geometry)" )
   parser.add_option('--dataFrame', dest='dataFrame', default=None, help="Path to dataFrame if already produced" )
   parser.add_option('--trainParams',dest='trainParams', default=None, help='Comma-separated list of colon-separated pairs corresponding to parameters for the training')
   return parser.parse_args()
 
 (opt,args) = get_options()
 
-#Define map to extract TDirectory for different clustering algo
+#Extract options
 clusteringAlgo = opt.clusteringAlgo
+release = opt.release
+if opt.trainParams: trainParams = opt.trainParams.split(',')
+
+#Dictionaries for type mapping
+typeMap = {"electron":"SingleElectron_FlatPt-2to100","photon":"SinglePhoton_FlatPt-8to150","pion":"SinglePion_FlatPt-2to100","neutrino":"SingleNeutrino"}
+treeMap = {"electron":"e_sig","photon":"g_sig","pion":"pi_bkg","neutrino":"pu_bkg"}
+procMap = {"electron":"signal", "photon":"signal", "pion":"background", "neutrino":"background"}
 
 #set up global variables
-trainDirMap = {}
-#Signal
-if 'hgcal_only' in opt.inputSignalType: trainDirMap['eg_signal'] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/trees/hgcal_only/%s/"%clusteringAlgo
-else: trainDirMap['eg_signal'] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/trees/full_eta_range/%s/"%clusteringAlgo
-#Background
-if 'hgcal_only' in opt.inputBackgroundType: trainDirMap['eg_background'] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/trees/hgcal_only/%s/"%clusteringAlgo
-else: trainDirMap['eg_background'] = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/trees/full_eta_range/%s/"%clusteringAlgo
-frameDir = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/frames/%s/"%clusteringAlgo
+frameDir = os.environ['CMSSW_BASE']+"/src/L1Trigger/analysis/output/frames/%s"%release
+modelDir = os.environ['CMSSW_BASE']+"/src/L1Trigger/analysis/output/models/%s"%release
 
+# Training a validation fractions
 trainFrac = 0.9
 validFrac = 0.1
-
-#parameters for training model
-if opt.trainParams: trainParams = opt.trainParams.split(',')
 
 #get trees from files and put them in dataFrames
 procFileMap = {}
 #Signal
-if opt.inputSignalType == "electron_hgcal_only": procFileMap['eg_signal'] = "SingleElectronPt5_100Eta1p6_2p8/SingleElectronPt5_100Eta1p6_2p8_%s_train.root"%clusteringAlgo
-elif opt.inputSignalType == "electron": procFileMap['eg_signal'] = "SingleElectron_FlatPt-2to100/SingleElectron_FlatPt-2to100_%s_train.root"%clusteringAlgo
-else: 
-  print "  [ERROR] Invalid signal type... Leaving"
-  sys.exit(1)
+procFileMap[ opt.signal ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/analysis/output/trees/%s/%s/%s/%s_%s_train.root"%(release,clusteringAlgo,typeMap[opt.signal],typeMap[opt.signal],clusteringAlgo)
 #Background
-if opt.inputBackgroundType == "neutrino": procFileMap['eg_background'] = "SingleNeutrino/SingleNeutrino_%s_train.root"%clusteringAlgo
-else:
-  print "  [ERROR] Invalid background type... Leaving"
-  sys.exit(1)
+procFileMap[ opt.background ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/analysis/output/trees/%s/%s/%s/%s_%s_train.root"%(release,clusteringAlgo,typeMap[opt.background],typeMap[opt.background],clusteringAlgo)
+
 procs = procFileMap.keys()
 
 #define set of variables to use
-egID_vars = ['coreshowerlength','firstlayer','maxlayer','srrmean']
+egID_vars = ['cl3d_coreshowerlength','cl3d_showerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_szz','cl3d_srrmean','cl3d_srrtot','cl3d_seetot','cl3d_spptot']
+#egID_vars = ['cl3d_coreshowerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_srrmean']
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Extract dataFrames if they do not already exist
@@ -83,45 +79,26 @@ if not opt.dataFrame:
   trainFrames = {}
   #extract the trees: turn them into arrays
   for proc,fileName in procFileMap.iteritems():
-    trainFile = ROOT.TFile("%s%s"%(trainDirMap[proc],fileName))
-    if proc == 'eg_signal': 
-      trainTree = trainFile.Get('egid_signal')
-      #initialise new tree with only relevant variables
-      sigFile = ROOT.TFile("tmp_sig.root","RECREATE")
-      sigTree = ROOT.TTree("sig","sig")
-      sig_vars = {}
-      for var in egID_vars: 
-        sig_vars[ var ] = array( 'f', [-1.] )
-        sigTree.Branch( '%s'%var, sig_vars[ var ], '%s/F'%var )
-      for ev in trainTree:
-        for var in egID_vars:
-          sig_vars[ var ][0] = getattr( ev, 'sig_%s'%var )
-        sigTree.Fill()
-      trainFrames[proc] = pd.DataFrame( tree2array( sigTree ) )
-      del sigFile
-      del sigTree 
-      system('rm tmp_sig.root')
-    
-    elif proc == 'eg_background' : 
-      trainTree = trainFile.Get('egid_background')
-      #initialise new tree with only relevant variables
-      bkgFile = ROOT.TFile("tmp_bkg.root","RECREATE")
-      bkgTree = ROOT.TTree("bkg","bkg")
-      bkg_vars = {}
-      for var in egID_vars:
-        bkg_vars[ var ] = array( 'f', [-1.] )
-        bkgTree.Branch( '%s'%var, bkg_vars[ var ], '%s/F'%var )
-      for ev in trainTree:
-        for var in egID_vars:
-          bkg_vars[ var ][0] = getattr( ev, 'bkg_%s'%var )
-        bkgTree.Fill()
-      trainFrames[proc] = pd.DataFrame( tree2array( bkgTree ) )
-      del bkgFile
-      del bkgTree
-      system('rm tmp_bkg.root')
+    print "  --> [DEBUG] process = %s, fileName = %s"%(proc,fileName)
+    trainFile = ROOT.TFile("%s"%fileName)
+    trainTree = trainFile.Get( treeMap[proc] )
+    #initialise new tree with only relevant variables
+    _file = ROOT.TFile("tmp.root","RECREATE")
+    _tree = ROOT.TTree("tmp","tmp")
+    _vars = {}
+    for var in egID_vars: 
+      _vars[ var ] = array( 'f', [-1.] )
+      _tree.Branch( '%s'%var, _vars[ var ], '%s/F'%var )
+    for ev in trainTree:
+      for var in egID_vars: _vars[ var ][0] = getattr( ev, '%s'%var )
+      _tree.Fill()
+    trainFrames[proc] = pd.DataFrame( tree2array( _tree ) )
+    del _file
+    del _tree 
+    system('rm tmp.root')
 
     #add column to dataFrame to label clusters
-    trainFrames[proc]['proc'] = proc
+    trainFrames[proc]['proc'] = procMap[ proc ]
     print "  * Extracted %s dataFrame from tree"%proc
 
   #create one total frame
@@ -137,14 +114,16 @@ if not opt.dataFrame:
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   #Re-weighting
   #1) assume sig and bkg equally likely, weight both to 1 (probably incorrect)
-  sum_sig = len( trainTotal[ trainTotal['proc']=="eg_signal" ] )
-  sum_bkg = len( trainTotal[ trainTotal['proc']=="eg_background" ] )
-  weights = list( map( lambda a: (sum_sig+sum_bkg)/sum_sig if a == "eg_signal" else (sum_sig+sum_bkg)/sum_bkg, trainTotal['proc'] ) )
+  sum_sig = len( trainTotal[ trainTotal['proc']=="signal" ].index )
+  print "  --> [DEBUG] N_signal = %2.1f"%sum_sig
+  sum_bkg = len( trainTotal[ trainTotal['proc']=="background" ].index )
+  print "  --> [DEBUG] N_background = %2.1f"%sum_bkg
+  weights = list( map( lambda a: (sum_sig+sum_bkg)/sum_sig if a == "signal" else (sum_sig+sum_bkg)/sum_bkg, trainTotal['proc'] ) )
   trainTotal['weight'] = weights
 
   #save dataframe as pkl file
-  trainTotal.to_pickle("%strainTotal_sig_%s_bkg_%s.pkl"%(frameDir,opt.inputSignalType,opt.inputBackgroundType))
-  print "  --> dataFrame saved as %strainTotal_sig_%s_bkg_%s.pkl"%(frameDir,opt.inputSignalType,opt.inputBackgroundType)
+  trainTotal.to_pickle("%s/trainTotal_%s_%s_vs_%s.pkl"%(frameDir,clusteringAlgo,opt.signal,opt.background))
+  print "  --> dataFrame saved as %s/trainTotal_%s_%s_vs_%s.pkl"%(frameDir,clusteringAlgo,opt.signal,opt.background)
 
 #read in dataFrame if already made
 else:
@@ -166,7 +145,7 @@ egID_validLimit = int(theShape*validFrac)
 egID_X = trainTotal[ egID_vars ].values
 egID_Y = label_encoder.fit_transform(trainTotal[ 'proc' ].values)
 egID_w = trainTotal[ 'weight' ].values
-del trainTotal
+#del trainTotal
 
 #Shuffle 
 egID_X = egID_X[ egID_shuffle ] 
@@ -206,9 +185,8 @@ egID_model = xg.train( trainParams, training_egID )
 print "  --> Done"
 
 # Save the model here
-modelDir = "/afs/cern.ch/work/j/jlangfor/HGCal/L1/CMSSW_10_4_0/src/L1Trigger/analysis/output/models/%s/"%clusteringAlgo
-egID_model.save_model( '%segID_%s_sig_%s_bkg_%s.model'%(modelDir,clusteringAlgo,opt.inputSignalType,opt.inputBackgroundType) )
-print "  --> Model saved: %segID_%s_sig_%s_bkg_%s.model"%(modelDir,clusteringAlgo,opt.inputSignalType,opt.inputBackgroundType)
+egID_model.save_model( '%s/egID_%s_%s_vs_%s_full.model'%(modelDir,clusteringAlgo,opt.signal,opt.background) )
+print "  --> Model saved: %s/egID_%s_%s_vs_%s_full.model"%(modelDir,clusteringAlgo,opt.signal,opt.background)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Check performance of model using validation set
 egID_train_predY_xcheck = egID_model.predict( training_egID )
