@@ -60,16 +60,22 @@ def get_options():
   parser.add_option('--signal', dest='signal', default='electron', help="Input signal type" )
   parser.add_option('--background', dest='background', default='neutrino', help="Input background type" )
   parser.add_option('--release', dest='release', default='103X', help="CMSSW release (for HGCal geometry)" )
-  parser.add_option('--discriminators', dest='discriminators', default='electron_vs_neutrino', help='BDT trained to discriminate' )
-  parser.add_option('--bdtNames', dest='bdt_names', default='baseline', help="Comma separated list of BDT names to s" )
+  parser.add_option('--bdts', dest='bdt_list', default='electron_vs_neutrino,baseline', help="Comma separated list of BDTs to save value of" )
   return parser.parse_args()
 
 (opt,args) = get_options()
 
-# Extract model xml file
+# Input bdt options
 modelAlgo = opt.modelAlgo
 release = opt.release
-model_xml = os.environ['CMSSW_BASE']+"/src/L1Trigger/analysis/output/models/%s/egID_%s_%s_vs_%s.xml"%(release,modelAlgo,opt.signal,opt.background)
+bdt_list = []
+for bdt in opt.bdt_list.split(":"): bdt_list.append( {'discriminator':bdt.split(",")[0],'config':bdt.split(",")[1]} )
+#Extract xmls for bdts
+model_xmls = {}
+for b in bdt_list: 
+  bdt_name = "%s_%s"%(b['discriminator'],b['config'])
+  if b['config'] == "baseline": model_xmls[ bdt_name ] = os.environ['CMSSW_BASE']+"/src/L1Trigger/analysis/output/models/%s/egID_%s_%s.xml"%(release,modelAlgo,b['discriminator'])
+  else: model_xmls[ bdt_name ] = os.environ['CMSSW_BASE']+"/src/L1Trigger/analysis/output/models/%s/egID_%s_%s_%s.xml"%(release,modelAlgo,b['discriminator'],b['config'])
 
 #Dictionaries for type mapping
 typeMap = {"electron":"SingleElectron_FlatPt-2to100","photon":"SinglePhoton_FlatPt-8to150","pion":"SinglePion_FlatPt-2to100","neutrino":"SingleNeutrino"}
@@ -88,13 +94,13 @@ output_dir = os.environ['CMSSW_BASE'] + "/src/L1Trigger/analysis/output/egID_tre
 outputMap[ opt.signal ] = "%s/%s_%s.root"%(output_dir,typeMap[opt.signal],modelAlgo)
 outputMap[ opt.background ] = "%s/%s_%s.root"%(output_dir,typeMap[opt.background],modelAlgo)
 
-#BDT input variables
-in_var_names = ['cl3d_coreshowerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_srrmean']
+#BDT input variables: HARDCODED 
+in_var_names = {'electron_vs_neutrino_baseline':['cl3d_coreshowerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_srrmean'],'electron_vs_neutrino_full':['cl3d_coreshowerlength','cl3d_showerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_szz','cl3d_srrmean','cl3d_srrtot','cl3d_seetot','cl3d_spptot'],'electron_vs_pion_full':['cl3d_coreshowerlength','cl3d_showerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_szz','cl3d_srrmean','cl3d_srrtot','cl3d_seetot','cl3d_spptot']}
 
 # output variables
 out_var_names = ['pt','eta','phi','clusters_n','showerlength','coreshowerlength','firstlayer','maxlayer','seetot','seemax','spptot','sppmax','szz','srrtot','srrmax','srrmean','emaxe','bdt_tpg']
 #Add new bdt score
-out_var_names.append( 'bdt_%s_%s_%s_vs_%s'%(modelAlgo,release,opt.signal,opt.background) )
+for b in bdt_list: out_var_names.append( 'bdt_%s_%s_%s_%s'%(modelAlgo,release,b['discriminator'],b['config']) )
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #Extract trees from ROOT files
@@ -122,9 +128,13 @@ for tree in t_out.itervalues():
 print "  --> Output configured"
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-# Initialise self trained BDT
-bdt, bdt_in_var = initialise_egID_BDT( model_xml, in_var_names )
-print "  --> Initialised BDTs: %s_%s_vs_%s"%(modelAlgo,opt.signal,opt.background)
+# Initialise BDTs
+bdts = {}
+bdt_in_var = {} #dictionary of dictionary of input variables
+for b in bdt_list:
+  bdt_name = "%s_%s"%(b['discriminator'],b['config'])
+  bdts[ bdt_name ], bdt_in_var[ bdt_name ] = initialise_egID_BDT( model_xmls[bdt_name], in_var_names[bdt_name] )
+  print "  --> Initialised BDT: %s for Clustering: %s, Release: %s"%(bdt_name,modelAlgo,release)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Evaluating the BDT
@@ -135,13 +145,15 @@ for proc, tree in t_in.iteritems():
   # Loop over clusters and fill output trees
   for cl3d in tree:
  
-    #evaluate the bdt
-    out_var[ 'bdt_%s_%s_%s_vs_%s'%(modelAlgo,release,opt.signal,opt.background) ][0] = evaluate_egID_BDT( bdt, bdt_in_var, cl3d, in_var_names )
+    #evaluate the bdts
+    for b in bdt_list: 
+      bdt_name = "%s_%s"%(b['discriminator'],b['config'])
+      out_var[ 'bdt_%s_%s_%s_%s'%(modelAlgo,release,b['discriminator'],b['config']) ][0] = evaluate_egID_BDT( bdts[bdt_name], bdt_in_var[bdt_name], cl3d, in_var_names[bdt_name] )
 
     #extract other variables from trees
     for var in out_var_names: 
-      if var == 'bdt_%s_%s_%s_vs_%s'%(modelAlgo,release,opt.signal,opt.background): continue
-      elif var == 'bdt_tpg': out_var[ var ][0] = getattr( cl3d, "cl3d_bdteg" )
+      if "bdt_%s_%s"%(modelAlgo,release) in var: continue
+      elif "bdt_tpg" in var: out_var[ var ][0] = getattr( cl3d, "cl3d_bdteg" )
       else: out_var[ var ][0] = getattr( cl3d, "cl3d_%s"%var )
 
     #write cluster with BDT scores to output tree

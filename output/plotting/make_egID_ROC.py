@@ -8,8 +8,9 @@ from optparse import OptionParser
 from optparse import OptionParser
 def get_options():
   parser = OptionParser()
-  parser.add_option('--inputMap', dest='input_map', default='electron,neutrino,default,103X,self,electron_vs_neutrino,1', help="Colon separated maps of ROC curves to plot, of the type: signal,background,model algo.,CMSSW release,training (self/tpg),discriminator,colour" )
+  parser.add_option('--inputMap', dest='input_map', default='electron,neutrino,default,103X,self,electron_vs_neutrino,baseline,1', help="Colon separated maps of ROC curves to plot, of the type: signal,background,model algo.,CMSSW release,training (self/tpg),discriminator,config,colour" )
   parser.add_option("--legend", dest="legend", default='', help="Legend entries")
+  parser.add_option("--zoom", dest="zoom", default="0,0,0", help="Zooming in on plot")
   parser.add_option('--output', dest='output', default='', help="Output directory" )
   parser.add_option('--batch', dest='batch', default=0, help="Set to 1 to supress output to screen" )
   return parser.parse_args()
@@ -25,7 +26,7 @@ print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 input_list = []
 for _input in opt.input_map.split(":"):
   inputInfo = _input.split(",")
-  if len( inputInfo ) != 7:
+  if len( inputInfo ) != 8:
     print "  --> [ERROR] Invalid input map"
     sys.exit(1)
   input_list.append({})
@@ -35,7 +36,8 @@ for _input in opt.input_map.split(":"):
   input_list[-1]['release'] = inputInfo[3]
   input_list[-1]['training'] = inputInfo[4]
   input_list[-1]['discriminator'] = inputInfo[5]
-  input_list[-1]['colour'] = inputInfo[6]
+  input_list[-1]['config'] = inputInfo[6]
+  input_list[-1]['colour'] = inputInfo[7]
 
 # Define dictionary for type mapping
 typeMap = {"electron":"SingleElectron_FlatPt-2to100","photon":"SinglePhoton_FlatPt-8to150","pion":"SinglePion_FlatPt-2to100","neutrino":"SingleNeutrino"}
@@ -46,6 +48,7 @@ output = opt.output
 ROOT.gStyle.SetOptStat(0)
 if batch: ROOT.gROOT.SetBatch(ROOT.kTRUE)
 canv = ROOT.TCanvas("c","c")
+zoom = opt.zoom.split(",")
 
 #Define dictionary to store ROC curve
 g_roc = {}
@@ -60,19 +63,19 @@ for i in input_list:
   t_bkg = f_bkg.Get( treeMap[i['background']] )
 
   #Define histograms
-  h_sig = ROOT.TH1F("h_sig_bdt_%s_%s_%s_%s"%(i['model_algo'],i['release'],i['training'],i['discriminator']), "", 240, -1.1, 1.1 )
-  h_bkg = ROOT.TH1F("h_bkg_bdt_%s_%s_%s_%s"%(i['model_algo'],i['release'],i['training'],i['discriminator']), "", 240, -1.1, 1.1 )
+  h_sig = ROOT.TH1F("h_sig_bdt_%s_%s_%s_%s_%s"%(i['model_algo'],i['release'],i['training'],i['discriminator'],i['config']), "", 240, -1.1, 1.1 )
+  h_bkg = ROOT.TH1F("h_bkg_bdt_%s_%s_%s_%s_%s"%(i['model_algo'],i['release'],i['training'],i['discriminator'],i['config']), "", 240, -1.1, 1.1 )
 
   #Fill histograms from trees
   for ev in t_sig:
     if i['training'] == "tpg": h_sig.Fill( getattr( ev, "cl3d_bdt_tpg" ) )
-    elif i['training'] == "self": h_sig.Fill( getattr( ev, "cl3d_bdt_%s_%s_%s"%(i['model_algo'],i['release'],i['discriminator']) ) )
+    elif i['training'] == "self": h_sig.Fill( getattr( ev, "cl3d_bdt_%s_%s_%s_%s"%(i['model_algo'],i['release'],i['discriminator'],i['config']) ) )
   for ev in t_bkg:
     if i['training'] == "tpg": h_bkg.Fill( getattr( ev, "cl3d_bdt_tpg" ) )
-    elif i['training'] == "self": h_bkg.Fill( getattr( ev, "cl3d_bdt_%s_%s_%s"%(i['model_algo'],i['release'],i['discriminator']) ) )
+    elif i['training'] == "self": h_bkg.Fill( getattr( ev, "cl3d_bdt_%s_%s_%s_%s"%(i['model_algo'],i['release'],i['discriminator'],i['config']) ) )
 
   #Define graph to plot ROC
-  rocStr = '%s_%s_%s_%s_%s_%s'%(i['signal'],i['background'],i['model_algo'],i['release'],i['training'],i['discriminator'])
+  rocStr = '%s_%s_%s_%s_%s_%s_%s'%(i['signal'],i['background'],i['model_algo'],i['release'],i['training'],i['discriminator'],i['config'])
   g_roc[ rocStr ] = ROOT.TGraph()
 
   # Loop over bins in histogram and plot points in graph
@@ -82,8 +85,12 @@ for i in input_list:
     g_roc[ rocStr ].SetPoint(j,1-eff_bkg,eff_sig)
 
   #Configure ROC
-  g_roc[ rocStr ].GetXaxis().SetRangeUser(0.75,1.)
-  g_roc[ rocStr ].GetYaxis().SetRangeUser(0.6,1.05)
+  if int(zoom[0]) == 1:
+    g_roc[ rocStr ].GetXaxis().SetRangeUser(float(zoom[1]),1.)
+    g_roc[ rocStr ].GetYaxis().SetRangeUser(float(zoom[2]),1.05)
+  else:
+    g_roc[ rocStr ].GetXaxis().SetRangeUser(0.75,1.)
+    g_roc[ rocStr ].GetYaxis().SetRangeUser(0.6,1.05)
   g_roc[ rocStr ].GetXaxis().SetTitle('1 - #epsilon_{b}')
   g_roc[ rocStr ].GetXaxis().SetTitleSize(0.05)
   g_roc[ rocStr ].GetXaxis().SetTitleOffset(0.9)
@@ -97,7 +104,7 @@ for i in input_list:
 # Loop over input list again and plot
 for _idx in range( len( input_list ) ):
   i = input_list[_idx]
-  rocStr = '%s_%s_%s_%s_%s_%s'%(i['signal'],i['background'],i['model_algo'],i['release'],i['training'],i['discriminator'])
+  rocStr = '%s_%s_%s_%s_%s_%s_%s'%(i['signal'],i['background'],i['model_algo'],i['release'],i['training'],i['discriminator'],i['config'])
   if _idx == 0: g_roc[ rocStr ].Draw("AL")
   else: g_roc[ rocStr ].Draw("L SAME")
 
