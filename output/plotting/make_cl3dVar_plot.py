@@ -8,7 +8,7 @@ from optparse import OptionParser
 def get_options():
   parser = OptionParser()
   parser = OptionParser( usage="usage: python make_cl3dVar_plot.py <options>" )
-  parser.add_option("--inputMap", dest="input_map", default="", help="List of inputs to plot, of the form: input type,clustering algo.,CMSSW release,colour,marker style,plotting option:..." )
+  parser.add_option("--inputMap", dest="input_map", default="", help="List of inputs to plot, of the form: input type,clustering algo.,geometry,colour,marker style,plotting option:..." )
   parser.add_option("--variable", dest="variable", default="", help="Variable to plot")
   parser.add_option("--outputDir", dest="output_dir", default='', help="Output directory")
   parser.add_option("--normalized", dest="normalized", default=1, help="Normalise plot")
@@ -45,7 +45,7 @@ for _input in opt.input_map.split(":"):
   input_list.append({})
   input_list[-1]['type'] = inputInfo[0]
   input_list[-1]['cl3d_algo'] = inputInfo[1]
-  input_list[-1]['release'] = inputInfo[2]
+  input_list[-1]['geometry'] = inputInfo[2]
   input_list[-1]['colour'] = inputInfo[3]
   input_list[-1]['marker'] = inputInfo[4]
   input_list[-1]['option'] = inputInfo[5]
@@ -76,45 +76,45 @@ if( setLogY ): canv.SetLogy()
 # Loop over inputs in map and create histogram from var in tree
 for i in input_list:
 
-  fileDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])] = ROOT.TFile.Open( os.environ['CMSSW_BASE'] + "/src/L1Trigger/analysis/output/trees/%s/%s/%s/%s_%s_train.root"%(i['release'],i['cl3d_algo'],typeMap[i['type']],typeMap[i['type']],i['cl3d_algo']) )
-  treeDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])] = fileDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].Get( treeMap[i['type']] )
+  fileDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])] = ROOT.TFile.Open( os.environ['CMSSW_BASE'] + "/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_full.root"%(i['geometry'],i['cl3d_algo'],typeMap[i['type']],typeMap[i['type']],i['cl3d_algo']) )
+  treeDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])] = fileDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].Get( treeMap[i['type']] )
 
-  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])] = ROOT.TH1F("h_%s_%s_%s"%(i['type'],i['cl3d_algo'],i['release']), "", binning[0], binning[1], binning[2] )
+  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])] = ROOT.TH1F("h_%s_%s_%s"%(i['type'],i['cl3d_algo'],i['geometry']), "", binning[0], binning[1], binning[2] )
 
-  for ev in treeDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])]: histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].Fill( getattr( ev, "cl3d_%s"%var ) )
+  for ev in treeDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])]: histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].Fill( getattr( ev, "cl3d_%s"%var ) )
 
   #normalise histograms
-  if normalized: histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].Scale(1./histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].GetEntries())
+  if normalized: histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].Scale(1./histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].GetEntries())
 
   #plotting options
-  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].SetLineWidth(2)
-  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].SetLineColor(int(i['colour']))
-  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].SetMarkerColor(int(i['colour']))
-  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].SetMarkerStyle(int(i['marker']))
-  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].SetMarkerSize(1.2)
-  if normalized: histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].GetYaxis().SetTitle("1/N dN/d(%s)"%var)
-  else: histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].GetYaxis().SetTitle("N")
-  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].GetYaxis().SetTitleSize(0.05)
-  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].GetYaxis().SetTitleOffset(0.8)
-  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].GetXaxis().SetTitle("%s"%var)
-  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].GetXaxis().SetTitleSize(0.05)
-  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].GetXaxis().SetTitleOffset(0.9)
+  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].SetLineWidth(2)
+  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].SetLineColor(int(i['colour']))
+  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].SetMarkerColor(int(i['colour']))
+  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].SetMarkerStyle(int(i['marker']))
+  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].SetMarkerSize(1.2)
+  if normalized: histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].GetYaxis().SetTitle("1/N dN/d(%s)"%var)
+  else: histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].GetYaxis().SetTitle("N")
+  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].GetYaxis().SetTitleSize(0.05)
+  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].GetYaxis().SetTitleOffset(0.8)
+  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].GetXaxis().SetTitle("%s"%var)
+  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].GetXaxis().SetTitleSize(0.05)
+  histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].GetXaxis().SetTitleOffset(0.9)
 
   #if maximum > current: save new maximum
-  if histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].GetMaximum() > maximum_value: maximum_value = histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].GetMaximum()
+  if histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].GetMaximum() > maximum_value: maximum_value = histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].GetMaximum()
   
 # Loop over input list again and plot
 for _idx in range( len( input_list ) ):
   i = input_list[_idx]
   if( _idx == 0 ):
     if( setLogY ): 
-      histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].SetMaximum( 1.3*maximum_value ) 
-      histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].SetMinimum( 1e-3 )
+      histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].SetMaximum( 1.3*maximum_value ) 
+      histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].SetMinimum( 1e-4 )
     else:
-      histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].SetMaximum( 1.1*maximum_value ) 
-    histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].Draw("%s"%i['option'])
+      histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].SetMaximum( 1.1*maximum_value ) 
+    histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].Draw("%s"%i['option'])
   else: 
-    histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['release'])].Draw("SAME %s"%i['option'])
+    histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].Draw("SAME %s"%i['option'])
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -125,45 +125,45 @@ lat.SetLineWidth(2)
 lat.SetTextAlign(11)
 lat.SetNDC()
 lat.SetTextSize(0.05)
-if "93X" not in opt.input_map: lat.DrawLatex(0.1,0.92,"#bf{CMS Phase-2 (v9)} #scale[0.75]{#it{Internal}}")
-else: lat.DrawLatex(0.1,0.92,"#bf{CMS Phase-2} #scale[0.75]{#it{Internal}}")
+lat.DrawLatex(0.1,0.92,"#bf{CMS Phase-2} #scale[0.75]{#it{Internal}}")
 lat.DrawLatex(0.8,0.92,"14 TeV")
 
 #For legend
 entry_list = []
 #Entry of type: text,colour,option
-for _entry in opt.legend.split("+"):
-  entryInfo = _entry.split(",")
-  if len(entryInfo) != 4:
-    print "  --> [ERROR] Invalid legend entry. Exiting..."
-    sys.exit(1)
-  entry_list.append({})
-  entry_list[-1]['text'] = entryInfo[0]
-  entry_list[-1]['colour'] = entryInfo[1]
-  entry_list[-1]['marker'] = entryInfo[2]
-  entry_list[-1]['option'] = entryInfo[3]
+if opt.legend != "":
+  for _entry in opt.legend.split("+"):
+    entryInfo = _entry.split(",")
+    if len(entryInfo) != 4:
+      print "  --> [ERROR] Invalid legend entry. Exiting..."
+      sys.exit(1)
+    entry_list.append({})
+    entry_list[-1]['text'] = entryInfo[0]
+    entry_list[-1]['colour'] = entryInfo[1]
+    entry_list[-1]['marker'] = entryInfo[2]
+    entry_list[-1]['option'] = entryInfo[3]
 
-graph_list = []
-#Create dummy graphs to place in legend
-for entry in entry_list:
-  gr = ROOT.TGraph()
-  gr.SetFillColor( int(entry['colour']) )
-  gr.SetLineColor( int(entry['colour']) )
-  gr.SetLineWidth( 2 )
-  gr.SetMarkerColor( int(entry['colour']) )
-  gr.SetMarkerStyle( int(entry['marker']) )
-  gr.SetMarkerSize( 1.2 )
-  graph_list.append( gr )
+  graph_list = []
+  #Create dummy graphs to place in legend
+  for entry in entry_list:
+    gr = ROOT.TGraph()
+    gr.SetFillColor( int(entry['colour']) )
+    gr.SetLineColor( int(entry['colour']) )
+    gr.SetLineWidth( 2 )
+    gr.SetMarkerColor( int(entry['colour']) )
+    gr.SetMarkerStyle( int(entry['marker']) )
+    gr.SetMarkerSize( 1.2 )
+    graph_list.append( gr )
 
-#Create legend and add entries
-#leg = ROOT.TLegend(0.65,0.65,0.88,0.88)
-leg = ROOT.TLegend(0.38,0.38,0.62,0.62)
-leg.SetFillColor(0)
-leg.SetLineColor(0)
-for _idx in range( len( entry_list ) ):
-  entry = entry_list[_idx]
-  leg.AddEntry( graph_list[_idx], "%s"%entry['text'], "%s"%entry['option'] )
-leg.Draw("Same")
+  #Create legend and add entries
+  leg = ROOT.TLegend(0.65,0.65,0.88,0.88)
+  #leg = ROOT.TLegend(0.38,0.38,0.62,0.62)
+  leg.SetFillColor(0)
+  leg.SetLineColor(0)
+  for _idx in range( len( entry_list ) ):
+    entry = entry_list[_idx]
+    leg.AddEntry( graph_list[_idx], "%s"%entry['text'], "%s"%entry['option'] )
+  leg.Draw("Same")
 
 canv.Update()
 

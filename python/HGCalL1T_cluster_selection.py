@@ -8,22 +8,23 @@ from optparse import OptionParser
 #Get options from option parser
 def get_options():
   parser = OptionParser()
-  parser = OptionParser( usage="usage: HGCalL1T_cluster_selection.py -i <input ntuple type> -f <input ntuple number> -n <max events> -cl <clustering algorithm>" )
-  parser.add_option("-i", "--input", dest="input_type", default='electron', help="Input ntuple type")
-  parser.add_option("--inputPath", dest="input_path", default='/eos/home-j/jlangfor/hgcal/l1/egid/103X/v9', help="Path to input ntuples")
+  parser = OptionParser( usage="usage: HGCalL1T_cluster_selection.py <options>" )
+  parser.add_option("--input", dest="input_type", default='electron', help="Input ntuple type")
+  parser.add_option("--inputPath", dest="input_path", default='/eos/home-j/jlangfor/hgcal/l1/egid/may19', help="Path to input ntuples")
   parser.add_option("--pile_up", dest="pile_up", default='200', help="PU of input ntuples")
-  parser.add_option("--release", dest="release", default='103X', help="CMSSW release")
-  parser.add_option("-f", "--fileNumber", dest="file_number", default='1', help="Input ntuple number")
-  parser.add_option("-n", "--maxEvents", dest="maxEvents", default=10, help="Maximum number of events to process")
-  parser.add_option("-c", "--clusteringAlgo", dest="clusteringAlgo", default='default', help="Clustering algorithm used in ntuple production")
+  parser.add_option("--geometry", dest="geometry", default='v9', help="HGCal geometry configuration")
+  parser.add_option("--fileNumber", dest="file_number", default='1', help="Input ntuple number")
+  parser.add_option("--maxEvents", dest="maxEvents", default=10, help="Maximum number of events to process")
+  parser.add_option("--clusteringAlgo", dest="clusteringAlgo", default='Histomax_vardr', help="Clustering algorithm used in ntuple production")
   return parser.parse_args()
 
 (opt,args) = get_options()
 
 #Define map to extract TDirectory for different clustering algo
-clusteringAlgoDirectory_map = {'default':'Floatingpoint8ThresholdRef2dRef3dGenclustersntuple','Histomax_vardrth10':'Floatingpoint8ThresholdDummyHistomaxvardrth10Clustersntuple'}
-clusteringAlgo = opt.clusteringAlgo
+clusteringAlgoDirectory_map = {'TDR':'Floatingpoint8ThresholdRef2dRef3dGenclustersntuple','Histomax_vardr':'Floatingpoint8ThresholdDummyHistomaxvardrClustersntuple','STC_Histomax_vardr':'Floatingpoint8SupertriggercellDummyHistomaxvardrClustersntuple'}
 
+# Extract options
+clusteringAlgo = opt.clusteringAlgo
 maxEvents = int( opt.maxEvents )
 
 #For electron and pion inputs
@@ -39,7 +40,7 @@ fNumber = int(opt.file_number)
 #Construct input file name
 pile_up = opt.pile_up
 input_path = opt.input_path
-fInput = '%s/%s_%sPU/ntuple_%g.root'%(input_path,input_type,pile_up,fNumber)
+fInput = '%s/%s/%s_%sPU/ntuple_%g.root'%(input_path,opt.geometry,input_type,pile_up,fNumber)
 
 #PID for gen matching: depends on input type
 if( opt.input_type == "electron" ): gen_pdgid = [11]
@@ -57,7 +58,7 @@ print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
 #open ttree to read from
 fin = ROOT.TFile.Open( fInput )
-gen_tree = fin.Get("%s/HGCalTriggerNtuple"%clusteringAlgoDirectory_map[ 'default' ] )
+gen_tree = fin.Get("%s/HGCalTriggerNtuple"%clusteringAlgoDirectory_map[ 'TDR' ] )
 cl3d_tree = fin.Get("%s/HGCalTriggerNtuple"%clusteringAlgoDirectory_map[ clusteringAlgo ] )
 
 #########################################################################################
@@ -125,7 +126,7 @@ def fill_cl3d( _cl3d, _out_var ):
 # Configure output
 print "Configuring output ntuple..."
 #output ROOT file
-fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/analysis/output/trees/%s/%s/%s/%s_%s_%g.root'%(opt.release,clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
+fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%g.root'%(opt.geometry,clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
 fout = ROOT.TFile( fout_id, "RECREATE" )
 
 #Initialise ttree and define variables
