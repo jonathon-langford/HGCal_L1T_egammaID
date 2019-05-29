@@ -56,26 +56,28 @@ print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 from optparse import OptionParser
 def get_options():
   parser = OptionParser()
-  parser.add_option('--modelAlgo', dest='modelAlgo', default='Histomax_vardrth10', help="Clustering algorithm with which BDTs was trained" )
+  parser.add_option('--modelAlgo', dest='modelAlgo', default='Histomax_vardr', help="Clustering algorithm with which BDT was trained" )
   parser.add_option('--signal', dest='signal', default='electron', help="Input signal type" )
   parser.add_option('--background', dest='background', default='neutrino', help="Input background type" )
-  parser.add_option('--release', dest='release', default='103X', help="CMSSW release (for HGCal geometry)" )
-  parser.add_option('--bdts', dest='bdt_list', default='electron_vs_neutrino,baseline', help="Comma separated list of BDTs to save value of" )
+  parser.add_option('--geometry', dest='geometry', default='v9', help="HGCal geometry config" )
+  parser.add_option('--bdts', dest='bdt_list', default='electron_vs_neutrino,baseline,1', help="Comma separated list of BDTs to save value of. Last int defines if BDT is trained in different eta regions" )
+  parser.add_option('--dataset', dest='dataset', default='test', help="Input dataset type" )
   return parser.parse_args()
 
 (opt,args) = get_options()
 
 # Input bdt options
 modelAlgo = opt.modelAlgo
-release = opt.release
+geometry = opt.geometry
 bdt_list = []
-for bdt in opt.bdt_list.split(":"): bdt_list.append( {'discriminator':bdt.split(",")[0],'config':bdt.split(",")[1]} )
+for bdt in opt.bdt_list.split(":"): bdt_list.append( {'discriminator':bdt.split(",")[0],'config':bdt.split(",")[1],'split_by_eta':int(bdt.split(",")[2])} )
 #Extract xmls for bdts
 model_xmls = {}
 for b in bdt_list: 
   bdt_name = "%s_%s"%(b['discriminator'],b['config'])
-  if b['config'] == "baseline": model_xmls[ bdt_name ] = os.environ['CMSSW_BASE']+"/src/L1Trigger/analysis/output/models/%s/egID_%s_%s.xml"%(release,modelAlgo,b['discriminator'])
-  else: model_xmls[ bdt_name ] = os.environ['CMSSW_BASE']+"/src/L1Trigger/analysis/output/models/%s/egID_%s_%s_%s.xml"%(release,modelAlgo,b['discriminator'],b['config'])
+  if b['split_by_eta']:
+    for eta_region in ['low','high']: model_xmls[ "%s_%seta"%(bdt_name,eta_region) ] = os.environ['CMSSW_BASE']+"/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/models/%s/egID_%s_%s_%seta.xml"%(geometry,modelAlgo,bdt_name,eta_region)
+  else: model_xmls[ bdt_name ] = os.environ['CMSSW_BASE']+"/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/models/%s/egID_%s_%s.xml"%(geometry,modelAlgo,bdt_name)
 
 #Dictionaries for type mapping
 typeMap = {"electron":"SingleElectron_FlatPt-2to100","photon":"SinglePhoton_FlatPt-8to150","pion":"SinglePion_FlatPt-2to100","neutrino":"SingleNeutrino"}
@@ -84,15 +86,15 @@ treeMap = {"electron":"e_sig","photon":"g_sig","pion":"pi_bkg","neutrino":"pu_bk
 # map inputs to file
 inputMap = {}
 #Signal
-inputMap[ opt.signal ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/analysis/output/trees/%s/%s/%s/%s_%s_test.root"%(release,modelAlgo,typeMap[opt.signal],typeMap[opt.signal],modelAlgo)
+inputMap[ opt.signal ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%s.root"%(geometry,modelAlgo,typeMap[opt.signal],typeMap[opt.signal],modelAlgo,opt.dataset)
 #Background
-inputMap[ opt.background ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/analysis/output/trees/%s/%s/%s/%s_%s_test.root"%(release,modelAlgo,typeMap[opt.background],typeMap[opt.background],modelAlgo)
+inputMap[ opt.background ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%s.root"%(geometry,modelAlgo,typeMap[opt.background],typeMap[opt.background],modelAlgo,opt.dataset)
 
 #map outputs to file
 outputMap = {}
-output_dir = os.environ['CMSSW_BASE'] + "/src/L1Trigger/analysis/output/egID_trees/%s/%s"%(release,modelAlgo)
-outputMap[ opt.signal ] = "%s/%s_%s.root"%(output_dir,typeMap[opt.signal],modelAlgo)
-outputMap[ opt.background ] = "%s/%s_%s.root"%(output_dir,typeMap[opt.background],modelAlgo)
+output_dir = os.environ['CMSSW_BASE'] + "/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/results/%s/%s"%(geometry,modelAlgo)
+outputMap[ opt.signal ] = "%s/%s_%s_%s.root"%(output_dir,typeMap[opt.signal],modelAlgo,opt.dataset)
+outputMap[ opt.background ] = "%s/%s_%s_%s.root"%(output_dir,typeMap[opt.background],modelAlgo,opt.dataset)
 
 #BDT input variables: HARDCODED 
 in_var_names = {'electron_vs_neutrino_baseline':['cl3d_coreshowerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_srrmean'],'electron_vs_neutrino_full':['cl3d_coreshowerlength','cl3d_showerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_szz','cl3d_srrmean','cl3d_srrtot','cl3d_seetot','cl3d_spptot'],'electron_vs_pion_full':['cl3d_coreshowerlength','cl3d_showerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_szz','cl3d_srrmean','cl3d_srrtot','cl3d_seetot','cl3d_spptot']}
@@ -100,7 +102,9 @@ in_var_names = {'electron_vs_neutrino_baseline':['cl3d_coreshowerlength','cl3d_f
 # output variables
 out_var_names = ['pt','eta','phi','clusters_n','showerlength','coreshowerlength','firstlayer','maxlayer','seetot','seemax','spptot','sppmax','szz','srrtot','srrmax','srrmean','emaxe','bdt_tpg']
 #Add new bdt score
-for b in bdt_list: out_var_names.append( 'bdt_%s_%s_%s_%s'%(modelAlgo,release,b['discriminator'],b['config']) )
+for b in bdt_list: 
+  if b['split_by_eta']: out_var_names.append( 'bdt_%s_%s_%s_%s'%(modelAlgo,geometry,b['discriminator'],b['config']) )
+  else: out_var_names.append( 'bdt_%s_%s_%s_%s_eta_inclusive'%(modelAlgo,geometry,b['discriminator'],b['config']) )
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #Extract trees from ROOT files
@@ -133,8 +137,13 @@ bdts = {}
 bdt_in_var = {} #dictionary of dictionary of input variables
 for b in bdt_list:
   bdt_name = "%s_%s"%(b['discriminator'],b['config'])
-  bdts[ bdt_name ], bdt_in_var[ bdt_name ] = initialise_egID_BDT( model_xmls[bdt_name], in_var_names[bdt_name] )
-  print "  --> Initialised BDT: %s for Clustering: %s, Release: %s"%(bdt_name,modelAlgo,release)
+  if b['split_by_eta']:
+    for eta_region in ['low','high']:
+      bdts[ "%s_%seta"%(bdt_name,eta_region) ], bdt_in_var[ "%s_%seta"%(bdt_name,eta_region) ] = initialise_egID_BDT( model_xmls["%s_%seta"%(bdt_name,eta_region)], in_var_names[bdt_name] )
+      print "  --> Initialised BDT: %s_%seta for Clustering: %s, Release: %s"%(bdt_name,eta_region,modelAlgo,geometry)
+  else: 
+    bdts[ bdt_name ], bdt_in_var[ bdt_name ] = initialise_egID_BDT( model_xmls[bdt_name], in_var_names[bdt_name] )
+    print "  --> Initialised BDT: %s (inclusive in eta) for Clustering: %s, Release: %s"%(bdt_name,modelAlgo,geometry)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Evaluating the BDT
@@ -148,11 +157,21 @@ for proc, tree in t_in.iteritems():
     #evaluate the bdts
     for b in bdt_list: 
       bdt_name = "%s_%s"%(b['discriminator'],b['config'])
-      out_var[ 'bdt_%s_%s_%s_%s'%(modelAlgo,release,b['discriminator'],b['config']) ][0] = evaluate_egID_BDT( bdts[bdt_name], bdt_in_var[bdt_name], cl3d, in_var_names[bdt_name] )
+ 
+      if b['split_by_eta']:
+        #Low eta region: use low eta bdt
+        if abs(cl3d.cl3d_eta) < 2.7:
+          out_var[ 'bdt_%s_%s_%s_%s'%(modelAlgo,geometry,b['discriminator'],b['config']) ][0] = evaluate_egID_BDT( bdts["%s_loweta"%bdt_name], bdt_in_var["%s_loweta"%bdt_name], cl3d, in_var_names[bdt_name] )
+        #High eta region: use high eta bdt
+        else:
+          out_var[ 'bdt_%s_%s_%s_%s'%(modelAlgo,geometry,b['discriminator'],b['config']) ][0] = evaluate_egID_BDT( bdts["%s_higheta"%bdt_name], bdt_in_var["%s_higheta"%bdt_name], cl3d, in_var_names[bdt_name] )
+      #if trained using clusters with all eta
+      else:
+        out_var[ 'bdt_%s_%s_%s_%s_eta_inclusive'%(modelAlgo,geometry,b['discriminator'],b['config']) ][0] = evaluate_egID_BDT( bdts[bdt_name], bdt_in_var[bdt_name], cl3d, in_var_names[bdt_name] )
 
     #extract other variables from trees
     for var in out_var_names: 
-      if "bdt_%s_%s"%(modelAlgo,release) in var: continue
+      if "bdt_%s_%s"%(modelAlgo,geometry) in var: continue
       elif "bdt_tpg" in var: out_var[ var ][0] = getattr( cl3d, "cl3d_bdteg" )
       else: out_var[ var ][0] = getattr( cl3d, "cl3d_%s"%var )
 

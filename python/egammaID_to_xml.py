@@ -18,37 +18,39 @@ print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 from optparse import OptionParser
 def get_options():
   parser = OptionParser()
-  parser.add_option('--modelAlgo', dest='modelAlgo', default='default', help="Clustering algorithm with which BDT was trained" )
+  parser.add_option('--modelAlgo', dest='modelAlgo', default='Histomax_vardr', help="Clustering algorithm with which BDT was trained" )
   parser.add_option('--signal', dest='signal', default='electron', help="Input signal type" )
   parser.add_option('--background', dest='background', default='neutrino', help="Input background type" )
-  parser.add_option('--release', dest='release', default='103X', help="CMSSW release (for geometry)" )
-  parser.add_option('--bdtName', dest='bdt_name', default='baseline', help="String to identify BDT" )
+  parser.add_option('--geometry', dest='geometry', default='v9', help="HGCal Geomtry Config" )
+  parser.add_option('--bdtConfig', dest='bdtConfig', default='baseline', help="String to identify BDT" )
+  parser.add_option('--etaRegion', dest='etaRegion', default='total', help="Eta region of clusters used for training" )
   return parser.parse_args()
 
 (opt,args) = get_options()
 
 modelAlgo = opt.modelAlgo
-release = opt.release
-bdt_name = opt.bdt_name
+geometry = opt.geometry
+eta_region = opt.etaRegion
+bdt_name = "%s_vs_%s_%s"%(opt.signal,opt.background,opt.bdtConfig)
 
 #set up global variables
-modelDir = os.environ['CMSSW_BASE']+"/src/L1Trigger/analysis/output/models/%s"%release
+modelDir = os.environ['CMSSW_BASE']+"/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/models/%s"%geometry
 
 #define variables used in model
-egID_var_dict = {'baseline':['cl3d_coreshowerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_srrmean'],'full':['cl3d_coreshowerlength','cl3d_showerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_szz','cl3d_srrmean','cl3d_srrtot','cl3d_seetot','cl3d_spptot']}
+egID_var_dict = {'electron_vs_neutrino_baseline':['cl3d_coreshowerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_srrmean'],'electron_vs_neutrino_full':['cl3d_coreshowerlength','cl3d_showerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_szz','cl3d_srrmean','cl3d_srrtot','cl3d_seetot','cl3d_spptot']}
 egID_vars = egID_var_dict[ bdt_name ]
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Load models
 egID_model = xg.Booster()
-if bdt_name == "baseline": modelStr = "%s/egID_%s_%s_vs_%s.model"%(modelDir,modelAlgo,opt.signal,opt.background)
-else: modelStr = "%s/egID_%s_%s_vs_%s_%s.model"%(modelDir,modelAlgo,opt.signal,opt.background,bdt_name)
+if eta_region in ['low','high']: modelStr = "%s/egID_%s_%s_%seta.model"%(modelDir,modelAlgo,bdt_name,eta_region)
+else: modelStr = "%s/egID_%s_%s.model"%(modelDir,modelAlgo,bdt_name)
 egID_model.load_model( modelStr )
 print "  --> Loaded model: %s"%modelStr
 
 # Define name of xml file to save
-if bdt_name == "baseline": f_xml = "%s/egID_%s_%s_vs_%s.xml"%(modelDir,modelAlgo,opt.signal,opt.background)
-else: f_xml = "%s/egID_%s_%s_vs_%s_%s.xml"%(modelDir,modelAlgo,opt.signal,opt.background,bdt_name)
+if eta_region in ['low','high']: f_xml = "%s/egID_%s_%s_%seta.xml"%(modelDir,modelAlgo,bdt_name,eta_region)
+else: f_xml = "%s/egID_%s_%s.xml"%(modelDir,modelAlgo,bdt_name)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Convert to xml

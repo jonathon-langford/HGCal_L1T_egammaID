@@ -20,7 +20,7 @@ def get_options():
 
 #Variable plotting options: [bins, mimnimum, maximum]
 var = opt.variable
-variables_plotting_options = {'pt':[200,0,100,0], 'eta':[50,-3.14,3.14,0], 'phi':[50,-3.14,3.14,0], 'clusters_n':[30,0,30,0], 'showerlength':[50,0,50,0], 'coreshowerlength':[30,0,30,0], 'firstlayer':[50,0,50,0], 'maxlayer':[50,0,50,0], 'seetot':[50,0,0.10,0], 'seemax':[50,0,0.1,0], 'spptot':[50,0,0.1,1], 'sppmax':[50,0,0.1,1], 'szz':[50,0,50,1], 'srrtot':[50,0,0.01,1], 'srrmax':[50,0,0.01,1], 'srrmean':[50,0,0.01,1], 'emaxe':[60,0,1.2,0], 'bdteg':[50,-1,1.,0], 'quality':[6,-1,5,0]}
+variables_plotting_options = {'pt':[200,0,100,0], 'eta':[50,-3.14,3.14,0], 'phi':[50,-3.14,3.14,0], 'clusters_n':[30,0,30,0], 'showerlength':[50,0,50,0], 'coreshowerlength':[30,0,30,0], 'firstlayer':[50,0,50,0], 'maxlayer':[50,0,50,0], 'seetot':[50,0,0.10,0], 'seemax':[50,0,0.1,0], 'spptot':[50,0,0.1,1], 'sppmax':[50,0,0.1,1], 'szz':[50,0,50,1], 'srrtot':[50,0,0.01,1], 'srrmax':[50,0,0.01,1], 'srrmean':[50,0,0.01,1], 'emaxe':[60,0,1.2,0], 'bdteg':[50,-1,1.,1], 'quality':[6,-1,5,0]}
 if( var not in variables_plotting_options )&( var != 'all' ): 
   print "  --> [ERROR] Variable (%s) not supported"%var
   sys.exit(1)
@@ -81,6 +81,9 @@ for i in input_list:
 
   histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])] = ROOT.TH1F("h_%s_%s_%s"%(i['type'],i['cl3d_algo'],i['geometry']), "", binning[0], binning[1], binning[2] )
 
+  #for ev in treeDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])]: 
+  #  if( abs(getattr( ev, "cl3d_eta" ))>=2.7 )&( abs(getattr( ev, "cl3d_eta" ))<3.0 ): histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].Fill( getattr( ev, "cl3d_%s"%var ) )
+
   for ev in treeDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])]: histDict['%s_%s_%s'%(i['type'],i['cl3d_algo'],i['geometry'])].Fill( getattr( ev, "cl3d_%s"%var ) )
 
   #normalise histograms
@@ -127,6 +130,7 @@ lat.SetNDC()
 lat.SetTextSize(0.05)
 lat.DrawLatex(0.1,0.92,"#bf{CMS Phase-2} #scale[0.75]{#it{Internal}}")
 lat.DrawLatex(0.8,0.92,"14 TeV")
+#lat.DrawLatex(0.65,0.55,"2.7 < |#eta| < 3.0")
 
 #For legend
 entry_list = []
@@ -156,7 +160,9 @@ if opt.legend != "":
     graph_list.append( gr )
 
   #Create legend and add entries
-  leg = ROOT.TLegend(0.65,0.65,0.88,0.88)
+  if var == "eta": leg = ROOT.TLegend(0.38,0.65,0.62,0.88)
+  elif var == "srrmax": leg = ROOT.TLegend(0.65,0.15,0.88,0.38)
+  else: leg = ROOT.TLegend(0.65,0.65,0.88,0.88)
   #leg = ROOT.TLegend(0.38,0.38,0.62,0.62)
   leg.SetFillColor(0)
   leg.SetLineColor(0)

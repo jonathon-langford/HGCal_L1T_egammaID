@@ -126,7 +126,8 @@ def fill_cl3d( _cl3d, _out_var ):
 # Configure output
 print "Configuring output ntuple..."
 #output ROOT file
-fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%g.root'%(opt.geometry,clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
+#fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%g.root'%(opt.geometry,clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
+fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/new_egid/%s/%s/%s/%s_%s_%g.root'%(opt.geometry,clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
 fout = ROOT.TFile( fout_id, "RECREATE" )
 
 #Initialise ttree and define variables
