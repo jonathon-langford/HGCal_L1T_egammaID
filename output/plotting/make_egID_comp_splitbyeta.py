@@ -22,8 +22,8 @@ from root_numpy import tree2array, fill_hist
 
 #Function to get path from input
 def get_path( _i, _proc, where='trees' ): 
-  if where == 'trees': return os.environ['CMSSW_BASE'] + "/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%s.root"%(_i['geometry'],_i['cl3d_algo'],typeMap[_i[_proc]],typeMap[_i[_proc]],_i['cl3d_algo'],_i['dataset'])
-  elif where == 'results': return os.environ['CMSSW_BASE'] + "/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/results/%s/%s/%s_%s_%s.root"%(_i['geometry'],_i['cl3d_algo'],typeMap[_i[_proc]],_i['cl3d_algo'],_i['dataset'])
+  if where == 'trees': return os.environ['CMSSW_BASE'] + "/src/L1Trigger/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%s.root"%(_i['geometry'],_i['cl3d_algo'],typeMap[_i[_proc]],typeMap[_i[_proc]],_i['cl3d_algo'],_i['dataset'])
+  elif where == 'results': return os.environ['CMSSW_BASE'] + "/src/L1Trigger/HGCal_L1T_egammaID/output/results/%s/%s/%s_%s_%s.root"%(_i['geometry'],_i['cl3d_algo'],typeMap[_i[_proc]],_i['cl3d_algo'],_i['dataset'])
   else: 
     print "  --> Invalid location. Leaving..."
     sys.exit(1)
@@ -65,7 +65,6 @@ typeMap = {"electron":"SingleElectron_FlatPt-2to100","photon":"SinglePhoton_Flat
 treeMap = {"electron":"e_sig","photon":"g_sig","pion":"pi_bkg","neutrino":"pu_bkg"}
 
 #Variable to go in frame
-#frame_vars = ['cl3d_pt','cl3d_eta','cl3d_phi','cl3d_clusters_n','cl3d_showerlength','cl3d_coreshowerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_seetot','cl3d_seemax','cl3d_spptot','cl3d_sppmax','cl3d_szz','cl3d_srrtot','cl3d_srrmax','cl3d_srrmean','cl3d_emaxe','cl3d_bdteg']
 if opt.location == "trees": frame_vars = ['cl3d_pt','cl3d_eta','cl3d_bdteg']
 elif opt.location == "results": frame_vars = ['cl3d_pt','cl3d_eta','cl3d_bdt_tpg','cl3d_bdt_Histomax_vardr_v9_electron_vs_neutrino_baseline','cl3d_bdt_Histomax_vardr_v9_electron_vs_neutrino_baseline_eta_inclusive','cl3d_bdt_Histomax_vardr_v9_electron_vs_neutrino_full','cl3d_bdt_Histomax_vardr_v9_electron_vs_neutrino_full_eta_inclusive']
 else:
@@ -202,39 +201,41 @@ for i in input_list:
 if opt.no_output: sys.exit(1)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # SANDBOX FOR PLOTS
-#plt.figure(1)
-#for i in input_list:
-#  key_name = i['name'] + "_low_eta"
-#  if "eta_inclusive" in i['config']: _label = "%s (training inclusive in $\eta$)"%(i['config'].split("_")[0])
-#  else: _label = i['config']
-#  if i['config'] in ['baseline','full']: plt.plot( eff_signal[key_name], 1-eff_background[key_name], label=_label, color=i['colour'], linestyle='--' )
-#  else: plt.plot( eff_signal[key_name], 1-eff_background[key_name], label=_label, color=i['colour'] )
-#plt.xlabel('Signal Eff. ($\epsilon_s$)')
-#plt.ylabel('1 - Background Eff. ($1-\epsilon_b$)')
-#plt.title('1.5$ < |\eta| < $2.7, v9 geometry')
-#axes = plt.gca()
-#axes.set_xlim([0.5,1.1])
-#axes.set_ylim([0.5,1.1])
-#plt.legend(bbox_to_anchor=(0.05,0.1), loc='lower left')
-#plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/may19_3/egid_new/ROC_loweta_all.png" )
-#plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/may19_3/egid_new/ROC_loweta_all.pdf" )
+plt.figure(1)
+for i in input_list:
+  key_name = i['name'] + "_low_eta"
+  if i['config'] == "tpg": _label = "tpg (v8 3.5.2)"
+  elif "eta_inclusive" in i['config']: _label = "%s inclusive in $\eta$ (v9 3.9.4)"%(i['config'].split("_")[0])
+  else: _label = "%s (v9 3.9.4)"%i['config']
+  if i['config'] in ['baseline','full']: plt.plot( eff_signal[key_name], 1-eff_background[key_name], label=_label, color=i['colour'], linestyle='--' )
+  else: plt.plot( eff_signal[key_name], 1-eff_background[key_name], label=_label, color=i['colour'] )
+plt.xlabel('Signal Eff. ($\epsilon_s$)')
+plt.ylabel('1 - Background Eff. ($1-\epsilon_b$)')
+plt.title('1.5$ < |\eta| < $2.7, v9 geometry')
+axes = plt.gca()
+axes.set_xlim([0.5,1.1])
+axes.set_ylim([0.5,1.1])
+plt.legend(bbox_to_anchor=(0.05,0.1), loc='lower left')
+plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19_2/bdt_performance/ROC_loweta.png" )
+plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19_2/bdt_performance/ROC_loweta.pdf" )
 #
-#plt.figure(2)
-#for i in input_list:
-#  key_name = i['name'] + "_high_eta"
-#  if "eta_inclusive" in i['config']: _label = "%s (training inclusive in $\eta$)"%(i['config'].split("_")[0])
-#  else: _label = i['config']
-#  if i['config'] in ['baseline','full']: plt.plot( eff_signal[key_name], 1-eff_background[key_name], label=_label, color=i['colour'], linestyle='--' )
-#  else: plt.plot( eff_signal[key_name], 1-eff_background[key_name], label=_label, color=i['colour'] )
-#plt.xlabel('Signal Eff.')
-#plt.ylabel('1 - Background Eff.')
-#plt.title('2.7$ < |\eta| < $3.0, v9 geometry')
-#axes = plt.gca()
-#axes.set_xlim([0.5,1.1])
-#axes.set_ylim([0.5,1.1])
-#plt.legend(bbox_to_anchor=(0.05,0.1), loc='lower left')
-#plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/may19_3/egid_new/ROC_higheta_all.png" )
-#plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/may19_3/egid_new/ROC_higheta_all.pdf" )
+plt.figure(2)
+for i in input_list:
+  key_name = i['name'] + "_high_eta"
+  if i['config'] == "tpg": _label = "tpg (v8 3.5.2)"
+  elif "eta_inclusive" in i['config']: _label = "%s inclusive in $\eta$ (v9 3.9.4)"%(i['config'].split("_")[0])
+  else: _label = "%s (v9 3.9.4)"%i['config']
+  if i['config'] in ['baseline','full']: plt.plot( eff_signal[key_name], 1-eff_background[key_name], label=_label, color=i['colour'], linestyle='--' )
+  else: plt.plot( eff_signal[key_name], 1-eff_background[key_name], label=_label, color=i['colour'] )
+plt.xlabel('Signal Eff.')
+plt.ylabel('1 - Background Eff.')
+plt.title('2.7$ < |\eta| < $3.0, v9 geometry')
+axes = plt.gca()
+axes.set_xlim([0.5,1.1])
+axes.set_ylim([0.5,1.1])
+plt.legend(bbox_to_anchor=(0.05,0.1), loc='lower left')
+plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19_2/bdt_performance/ROC_higheta.png" )
+plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19_2/bdt_performance/ROC_higheta.pdf" )
 
 #sys.exit(1)
 
@@ -294,33 +295,33 @@ if opt.no_output: sys.exit(1)
 #plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/may19_3/egid_tpg_v9_only/epsilon_b_higheta.png" )
 #plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/may19_3/egid_tpg_v9_only/epsilon_b_higheta.pdf" )
 
-plt.figure(1)
-for i in input_list:
-  key_name = i['name'] + "_low_eta"
-  plt.plot( eff_signal[key_name], 1-eff_background[key_name], label="Geometry:%s"%i['geometry'], color=i['colour'] )
-plt.xlabel('Signal Eff. ($\epsilon_s$)')
-plt.ylabel('1 - Background Eff. ($1-\epsilon_b$)')
-plt.title('1.5$ < |\eta| < $2.7')
-axes = plt.gca()
-axes.set_xlim([0.5,1.05])
-axes.set_ylim([0.5,1.05])
-plt.legend(bbox_to_anchor=(0.05,0.1), loc='lower left')
-plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/may19_3/egid_tpg/ROC_loweta.png" )
-plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/may19_3/egid_tpg/ROC_loweta.pdf" )
+#plt.figure(1)
+#for i in input_list:
+#  key_name = i['name'] + "_low_eta"
+#  plt.plot( eff_signal[key_name], 1-eff_background[key_name], label="Geometry:%s"%i['geometry'], color=i['colour'] )
+#plt.xlabel('Signal Eff. ($\epsilon_s$)')
+#plt.ylabel('1 - Background Eff. ($1-\epsilon_b$)')
+#plt.title('1.5$ < |\eta| < $2.7')
+#axes = plt.gca()
+#axes.set_xlim([0.5,1.05])
+#axes.set_ylim([0.5,1.05])
+#plt.legend(bbox_to_anchor=(0.05,0.1), loc='lower left')
+#plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19_2/bdt_performance/ROC_loweta.png" )
+#plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19_2/bdt_performance/ROC_loweta.pdf" )
 
-plt.figure(2)
-for i in input_list:
-  key_name = i['name'] + "_high_eta"
-  plt.plot( eff_signal[key_name], 1-eff_background[key_name], label="Geometry:%s"%i['geometry'], color=i['colour'] )
-plt.xlabel('Signal Eff. ($\epsilon_s$)')
-plt.ylabel('1 - Background Eff. ($1-\epsilon_b$)')
-plt.title('2.7$ < |\eta| < $3.0')
-axes = plt.gca()
-axes.set_xlim([0.5,1.05])
-axes.set_ylim([0.5,1.05])
-plt.legend(bbox_to_anchor=(0.05,0.1), loc='lower left')
-plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/may19_3/egid_tpg/ROC_higheta.png" )
-plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/may19_3/egid_tpg/ROC_higheta.pdf" )
+#plt.figure(2)
+#for i in input_list:
+#  key_name = i['name'] + "_high_eta"
+#  plt.plot( eff_signal[key_name], 1-eff_background[key_name], label="Geometry:%s"%i['geometry'], color=i['colour'] )
+#plt.xlabel('Signal Eff. ($\epsilon_s$)')
+#plt.ylabel('1 - Background Eff. ($1-\epsilon_b$)')
+#plt.title('2.7$ < |\eta| < $3.0')
+#axes = plt.gca()
+#axes.set_xlim([0.5,1.05])
+#axes.set_ylim([0.5,1.05])
+#plt.legend(bbox_to_anchor=(0.05,0.1), loc='lower left')
+#plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19_2/bdt_performance/ROC_higheta.png" )
+#plt.savefig( "/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19_2/bdt_performance/ROC_higheta.pdf" )
 
 sys.exit(1)
 

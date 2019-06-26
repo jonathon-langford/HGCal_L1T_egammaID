@@ -13,32 +13,32 @@ print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 inputDirectoryMap = {'gen':'Floatingpoint8ThresholdRef2dRef3dGenclustersntuple','cl3d':'Floatingpoint8ThresholdDummyHistomaxvardrClustersntuple'}
 
 #pile up
-pile_up = "200"
+pile_up = "0"
 
 # Different eg-id to compare
 bdt_configs = ['tpg','full']
-#bdt_configs = ['full']
+#bdt_configs = ['tpg']
 
 # Define input files
 f_input = {}
 cl3dTrees = {}
 genTrees = {}
 for b in bdt_configs:
-  if b == "full": f_input[b] = ROOT.TFile("/eos/home-j/jlangfor/hgcal/l1/egid/may19/new_egid/v9/SingleElectron_FlatPt-2to100_%sPU/unknown_tpg/SingleElectron_FlatPt-2to100_%sPU_%s.root"%(pile_up,pile_up,b))
-  elif b == "tpg": f_input[b] = ROOT.TFile("/eos/home-j/jlangfor/hgcal/l1/egid/may19/v9/SingleElectron_FlatPt-2to100_%sPU/SingleElectron_FlatPt-2to100_%sPU_%s.root"%(pile_up,pile_up,b))
+  if b == "full": f_input[b] = ROOT.TFile("/eos/home-j/jlangfor/hgcal/l1/egid/v3_9_4/v9/SingleElectron_FlatPt-2to100_%sPU_retrained/SingleElectron_FlatPt-2to100_%sPU_%s.root"%(pile_up,pile_up,b))
+  if b == "tpg": f_input[b] = ROOT.TFile("/eos/home-j/jlangfor/hgcal/l1/egid/v3_9_4/v9/SingleElectron_FlatPt-2to100_%sPU/SingleElectron_FlatPt-2to100_%sPU_%s.root"%(pile_up,pile_up,b))
   cl3dTrees[b] = f_input[b].Get("%s/HGCalTriggerNtuple"%inputDirectoryMap['cl3d'])
   genTrees[b] = f_input[b].Get("%s/HGCalTriggerNtuple"%inputDirectoryMap['gen'])
 
 #PID for gen matching electron: depends on input type
 gen_pdgid = 11
 
-wp = {"full_loweta":-0.1937952,"full_higheta":0.7078400,"tpg_loweta":0.03496629,"tpg_higheta":0.13347613}
+wp = {"full_loweta":0.5276631,"full_higheta":0.8825340,"tpg_loweta":0.03496629,"tpg_higheta":0.13347613}
 
 #########################################################################################
 # Configure output
 print "Configuring output ntuple..."
 #output ROOT file
-f_out = ROOT.TFile( "test_%sPU_release_incompatible.root"%pile_up, "RECREATE" )
+f_out = ROOT.TFile( "efficiency_%sPU_v3_9_4.root"%pile_up, "RECREATE" )
 
 # define histograms: total, cl3d_matched and passing egid for each config
 h = {}

@@ -76,8 +76,8 @@ model_xmls = {}
 for b in bdt_list: 
   bdt_name = "%s_%s"%(b['discriminator'],b['config'])
   if b['split_by_eta']:
-    for eta_region in ['low','high']: model_xmls[ "%s_%seta"%(bdt_name,eta_region) ] = os.environ['CMSSW_BASE']+"/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/models/%s/egID_%s_%s_%seta.xml"%(geometry,modelAlgo,bdt_name,eta_region)
-  else: model_xmls[ bdt_name ] = os.environ['CMSSW_BASE']+"/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/models/%s/egID_%s_%s.xml"%(geometry,modelAlgo,bdt_name)
+    for eta_region in ['low','high']: model_xmls[ "%s_%seta"%(bdt_name,eta_region) ] = os.environ['CMSSW_BASE']+"/src/L1Trigger/HGCal_L1T_egammaID/output/models/%s/egID_%s_%s_%seta.xml"%(geometry,modelAlgo,bdt_name,eta_region)
+  else: model_xmls[ bdt_name ] = os.environ['CMSSW_BASE']+"/src/L1Trigger/HGCal_L1T_egammaID/output/models/%s/egID_%s_%s.xml"%(geometry,modelAlgo,bdt_name)
 
 #Dictionaries for type mapping
 typeMap = {"electron":"SingleElectron_FlatPt-2to100","photon":"SinglePhoton_FlatPt-8to150","pion":"SinglePion_FlatPt-2to100","neutrino":"SingleNeutrino"}
@@ -86,13 +86,13 @@ treeMap = {"electron":"e_sig","photon":"g_sig","pion":"pi_bkg","neutrino":"pu_bk
 # map inputs to file
 inputMap = {}
 #Signal
-inputMap[ opt.signal ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%s.root"%(geometry,modelAlgo,typeMap[opt.signal],typeMap[opt.signal],modelAlgo,opt.dataset)
+inputMap[ opt.signal ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%s.root"%(geometry,modelAlgo,typeMap[opt.signal],typeMap[opt.signal],modelAlgo,opt.dataset)
 #Background
-inputMap[ opt.background ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%s.root"%(geometry,modelAlgo,typeMap[opt.background],typeMap[opt.background],modelAlgo,opt.dataset)
+inputMap[ opt.background ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%s.root"%(geometry,modelAlgo,typeMap[opt.background],typeMap[opt.background],modelAlgo,opt.dataset)
 
 #map outputs to file
 outputMap = {}
-output_dir = os.environ['CMSSW_BASE'] + "/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/results/%s/%s"%(geometry,modelAlgo)
+output_dir = os.environ['CMSSW_BASE'] + "/src/L1Trigger/HGCal_L1T_egammaID/output/results/%s/%s"%(geometry,modelAlgo)
 outputMap[ opt.signal ] = "%s/%s_%s_%s.root"%(output_dir,typeMap[opt.signal],modelAlgo,opt.dataset)
 outputMap[ opt.background ] = "%s/%s_%s_%s.root"%(output_dir,typeMap[opt.background],modelAlgo,opt.dataset)
 

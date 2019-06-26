@@ -13,7 +13,7 @@ def get_options():
 (opt,args) = get_options()
 
 # Define path
-path = os.environ['CMSSW_BASE'] + "/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/run"
+path = os.environ['CMSSW_BASE'] + "/src/L1Trigger/HGCal_L1T_egammaID/run"
 f_sub_name = "submit_%s_%s_%s.sub"%(opt.input_type,opt.clusteringAlgo,opt.geometry)
 f_out = "%s_%s_$(procID)_%s"%(opt.input_type,opt.clusteringAlgo,opt.geometry)
 

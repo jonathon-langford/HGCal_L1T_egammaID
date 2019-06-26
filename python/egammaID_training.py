@@ -58,8 +58,8 @@ treeMap = {"electron":"e_sig","photon":"g_sig","pion":"pi_bkg","neutrino":"pu_bk
 procMap = {"electron":"signal", "photon":"signal", "pion":"background", "neutrino":"background"}
 
 #set up global variables
-frameDir = os.environ['CMSSW_BASE']+"/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/frames/%s"%geometry
-modelDir = os.environ['CMSSW_BASE']+"/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/models/%s"%geometry
+frameDir = os.environ['CMSSW_BASE']+"/src/L1Trigger/HGCal_L1T_egammaID/output/frames/%s"%geometry
+modelDir = os.environ['CMSSW_BASE']+"/src/L1Trigger/HGCal_L1T_egammaID/output/models/%s"%geometry
 
 # Training a validation fractions
 trainFrac = 0.9
@@ -68,9 +68,9 @@ validFrac = 0.1
 #get trees from files and put them in dataFrames
 procFileMap = {}
 #Signal
-procFileMap[ opt.signal ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_train.root"%(geometry,clusteringAlgo,typeMap[opt.signal],typeMap[opt.signal],clusteringAlgo)
+procFileMap[ opt.signal ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_train.root"%(geometry,clusteringAlgo,typeMap[opt.signal],typeMap[opt.signal],clusteringAlgo)
 #Background
-procFileMap[ opt.background ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_train.root"%(geometry,clusteringAlgo,typeMap[opt.background],typeMap[opt.background],clusteringAlgo)
+procFileMap[ opt.background ] = os.environ['CMSSW_BASE'] + "/src/L1Trigger/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_train.root"%(geometry,clusteringAlgo,typeMap[opt.background],typeMap[opt.background],clusteringAlgo)
 
 procs = procFileMap.keys()
 

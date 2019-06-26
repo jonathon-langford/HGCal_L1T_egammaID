@@ -10,7 +10,7 @@ def get_options():
   parser = OptionParser()
   parser = OptionParser( usage="usage: HGCalL1T_cluster_selection.py <options>" )
   parser.add_option("--input", dest="input_type", default='electron', help="Input ntuple type")
-  parser.add_option("--inputPath", dest="input_path", default='/eos/home-j/jlangfor/hgcal/l1/egid/may19', help="Path to input ntuples")
+  parser.add_option("--inputPath", dest="input_path", default='/eos/home-j/jlangfor/hgcal/l1/egid/v3_9_4', help="Path to input ntuples")
   parser.add_option("--pile_up", dest="pile_up", default='200', help="PU of input ntuples")
   parser.add_option("--geometry", dest="geometry", default='v9', help="HGCal geometry configuration")
   parser.add_option("--fileNumber", dest="file_number", default='1', help="Input ntuple number")
@@ -126,8 +126,7 @@ def fill_cl3d( _cl3d, _out_var ):
 # Configure output
 print "Configuring output ntuple..."
 #output ROOT file
-#fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%g.root'%(opt.geometry,clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
-fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/trees/new_egid/%s/%s/%s/%s_%s_%g.root'%(opt.geometry,clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
+fout_id = os.environ['CMSSW_BASE'] + '/src/L1Trigger/HGCal_L1T_egammaID/output/trees/%s/%s/%s/%s_%s_%g.root'%(opt.geometry,clusteringAlgo,input_type,input_type,clusteringAlgo,fNumber)
 fout = ROOT.TFile( fout_id, "RECREATE" )
 
 #Initialise ttree and define variables

@@ -34,7 +34,7 @@ eta_region = opt.etaRegion
 bdt_name = "%s_vs_%s_%s"%(opt.signal,opt.background,opt.bdtConfig)
 
 #set up global variables
-modelDir = os.environ['CMSSW_BASE']+"/src/L1Trigger/egid_analysis/HGCal_L1T_egammaID/output/models/%s"%geometry
+modelDir = os.environ['CMSSW_BASE']+"/src/L1Trigger/HGCal_L1T_egammaID/output/models/%s"%geometry
 
 #define variables used in model
 egID_var_dict = {'electron_vs_neutrino_baseline':['cl3d_coreshowerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_srrmean'],'electron_vs_neutrino_full':['cl3d_coreshowerlength','cl3d_showerlength','cl3d_firstlayer','cl3d_maxlayer','cl3d_szz','cl3d_srrmean','cl3d_srrtot','cl3d_seetot','cl3d_spptot']}

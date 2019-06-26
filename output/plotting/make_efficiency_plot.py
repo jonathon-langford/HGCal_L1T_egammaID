@@ -1,9 +1,10 @@
 import ROOT
 
-var = "geneta"
-pile_up = "200"
+var = "genpt"
+pile_up = "0"
+eff_min = 0.75
 
-f_in = ROOT.TFile("test_%sPU_release_incompatible.root"%pile_up)
+f_in = ROOT.TFile("efficiency_%sPU_v3_9_4.root"%pile_up)
 
 #Define histograms
 
@@ -38,8 +39,7 @@ canv = ROOT.TCanvas("c","c")
 ROOT.gStyle.SetOptStat(0)
 if var == "genpt":
   #configure plot
-  #h_tpg_eff_genpt.GetYaxis().SetRangeUser(0.75,1.1)
-  h_tpg_eff_genpt.GetYaxis().SetRangeUser(0.5,1.1)
+  h_tpg_eff_genpt.GetYaxis().SetRangeUser(eff_min,1.1)
   h_tpg_eff_genpt.GetYaxis().SetTitle("(L1>thr. & matched to GEN)/GEN")
   h_tpg_eff_genpt.GetYaxis().SetLabelSize(0.03)
   h_tpg_eff_genpt.GetYaxis().SetTitleSize(0.04)
@@ -51,12 +51,10 @@ if var == "genpt":
   h_tpg_eff_genpt.GetXaxis().SetTitleOffset(0.95)
 
   h_tpg_eff_genpt.SetMarkerColor(1)
-  #h_tpg_eff_genpt.SetMarkerSize(1.3)
-  h_tpg_eff_genpt.SetMarkerSize(0)
+  h_tpg_eff_genpt.SetMarkerSize(1.3)
   h_tpg_eff_genpt.SetMarkerStyle(34)
   h_tpg_eff_genpt.SetLineColor(1)
-  #h_tpg_eff_genpt.SetLineWidth(1)
-  h_tpg_eff_genpt.SetLineWidth(0)
+  h_tpg_eff_genpt.SetLineWidth(1)
 
   h_full_eff_genpt.SetMarkerColor(2)
   h_full_eff_genpt.SetMarkerSize(1.3)
@@ -86,17 +84,16 @@ if var == "genpt":
   leg1 = ROOT.TLegend(0.6,0.2,0.89,0.35)
   leg1.SetFillColor(0)
   leg1.SetLineColor(0)
-  #leg1.AddEntry(h_tpg_eff_genpt,"tpg (v8 trained)","P")
-  leg1.AddEntry(h_full_eff_genpt,"full (v9 trained)","P")
+  leg1.AddEntry(h_tpg_eff_genpt,"tpg (v8 3.5.2)","P")
+  leg1.AddEntry(h_full_eff_genpt,"full (v9 3.9.4)","P")
   leg1.Draw("Same")
 
-  #canv.SaveAs("/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19/efficiency/efficiency_vs_genpt_%sPU.png"%pile_up)
-  #canv.SaveAs("/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19/efficiency/efficiency_vs_genpt_%sPU.pdf"%pile_up)
+  canv.SaveAs("/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19_2/efficiency/efficiency_vs_genpt_%sPU.png"%pile_up)
+  canv.SaveAs("/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19_2/efficiency/efficiency_vs_genpt_%sPU.pdf"%pile_up)
 
 elif var == "geneta":
   #configure plot
-  #h_tpg_eff_geneta.GetYaxis().SetRangeUser(0.75,1.1)
-  h_tpg_eff_geneta.GetYaxis().SetRangeUser(0,1.1)
+  h_tpg_eff_geneta.GetYaxis().SetRangeUser(eff_min,1.1)
   h_tpg_eff_geneta.GetYaxis().SetTitle("(L1>thr. & matched to GEN)/GEN")
   h_tpg_eff_geneta.GetYaxis().SetLabelSize(0.03)
   h_tpg_eff_geneta.GetYaxis().SetTitleSize(0.04)
@@ -108,8 +105,7 @@ elif var == "geneta":
   h_tpg_eff_geneta.GetXaxis().SetTitleOffset(0.95)
 
   h_tpg_eff_geneta.SetMarkerColor(1)
-  h_tpg_eff_geneta.SetMarkerSize(0)
-  #h_tpg_eff_geneta.SetMarkerSize(1.3)
+  h_tpg_eff_geneta.SetMarkerSize(1.3)
   h_tpg_eff_geneta.SetMarkerStyle(34)
   h_tpg_eff_geneta.SetLineColor(1)
   h_tpg_eff_geneta.SetLineWidth(1)
@@ -130,19 +126,12 @@ elif var == "geneta":
   line1.Draw("Same")
 
   #Also lines for different eta regions
-  line2 = ROOT.TLine(-3,0,-3,1.03)
-  line3 = ROOT.TLine(-2.7,0,-2.7,1.03)
-  line4 = ROOT.TLine(-1.5,0,-1.5,1.03)
-  line5 = ROOT.TLine(1.5,0,1.5,1.03)
-  line6 = ROOT.TLine(2.7,0,2.7,1.03)
-  line7 = ROOT.TLine(3,0,3,1.03) 
-
-  #line2 = ROOT.TLine(-3,0.75,-3,1.03)
-  #line3 = ROOT.TLine(-2.7,0.75,-2.7,1.03)
-  #line4 = ROOT.TLine(-1.5,0.75,-1.5,1.03)
-  #line5 = ROOT.TLine(1.5,0.75,1.5,1.03)
-  #line6 = ROOT.TLine(2.7,0.75,2.7,1.03)
-  #line7 = ROOT.TLine(3,0.75,3,1.03) 
+  line2 = ROOT.TLine(-3,eff_min,-3,1.03)
+  line3 = ROOT.TLine(-2.7,eff_min,-2.7,1.03)
+  line4 = ROOT.TLine(-1.5,eff_min,-1.5,1.03)
+  line5 = ROOT.TLine(1.5,eff_min,1.5,1.03)
+  line6 = ROOT.TLine(2.7,eff_min,2.7,1.03)
+  line7 = ROOT.TLine(3,eff_min,3,1.03) 
   line2.SetLineWidth(2)
   line2.SetLineStyle(2)
   line2.Draw("Same")
@@ -175,11 +164,11 @@ elif var == "geneta":
   leg1 = ROOT.TLegend(0.33,0.2,0.62,0.35)
   leg1.SetFillColor(0)
   leg1.SetLineColor(0)
-  #leg1.AddEntry(h_tpg_eff_geneta,"tpg (v8 trained)","P")
-  leg1.AddEntry(h_full_eff_geneta,"full (v9 trained)","P")
+  leg1.AddEntry(h_tpg_eff_geneta,"tpg (v8 3.5.2)","P")
+  leg1.AddEntry(h_full_eff_geneta,"full (v9 3.9.4)","P")
   leg1.Draw("Same")
 
-  #canv.SaveAs("/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19/efficiency/efficiency_vs_geneta_%sPU.png"%pile_up)
-  #canv.SaveAs("/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19/efficiency/efficiency_vs_geneta_%sPU.pdf"%pile_up)
+  canv.SaveAs("/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19_2/efficiency/efficiency_vs_geneta_%sPU.png"%pile_up)
+  canv.SaveAs("/eos/home-j/jlangfor/www/CMS/HGCal/L1/egID/june19_2/efficiency/efficiency_vs_geneta_%sPU.pdf"%pile_up)
 
 
